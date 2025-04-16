@@ -1,804 +1,1207 @@
 
-import { useState, useEffect } from "react";
-import { Shield, Terminal, Play, AlertTriangle, FileText, X, Check, RefreshCw, Edit, Trash, Plus, Save } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { 
+  AlertTriangle, 
+  FileText, 
+  Eye, 
+  RefreshCw, 
+  Upload, 
+  ArrowUpDown, 
+  Check, 
+  X, 
+  Filter, 
+  Download, 
+  Play,
+  Pause,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Code,
+  Shield,
+  Info
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Mock Snort rules
-const initialRules = [
+// Mock data for Snort alerts
+const snortAlertsMock = [
   {
     id: 1,
-    enabled: true,
-    rule: 'alert tcp any any -> $HOME_NET 22 (msg:"SSH brute force attempt"; flow:to_server; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-admin; sid:1000001; rev:1;)',
-    description: "Detects SSH brute force attempts"
+    timestamp: "2025-04-16T10:23:45.000Z",
+    message: "INDICATOR-SCAN Port Scan",
+    classification: "Attempted Information Leak",
+    priority: 2,
+    protocol: "TCP",
+    srcIp: "203.0.113.42",
+    srcPort: 43210,
+    dstIp: "192.168.1.15",
+    dstPort: 80,
+    sid: 2000419,
+    ruleContent: 'alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"INDICATOR-SCAN Port Scan"; flow:stateless; detection_filter: track by_src, count 30, seconds 5; threshold:type threshold, track by_src, count 1, seconds 60; classtype:attempted-recon; sid:2000419; rev:10;)'
   },
   {
     id: 2,
-    enabled: true,
-    rule: 'alert tcp any any -> $HOME_NET 80 (msg:"SQL Injection attempt"; content:"SELECT"; nocase; content:"FROM"; nocase; content:"WHERE"; nocase; pcre:"/(union|select|insert|update|delete|replace|truncate)/i"; classtype:web-application-attack; sid:1000002; rev:1;)',
-    description: "Detects SQL injection attempts in HTTP requests"
+    timestamp: "2025-04-16T09:18:27.000Z",
+    message: "SERVER-WEBAPP SQL injection attempt",
+    classification: "Web Application Attack",
+    priority: 1,
+    protocol: "TCP",
+    srcIp: "203.0.113.15",
+    srcPort: 52341,
+    dstIp: "192.168.1.100",
+    dstPort: 443,
+    sid: 2102832,
+    ruleContent: 'alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"SERVER-WEBAPP SQL injection attempt"; flow:to_server,established; content:"SELECT"; nocase; pcre:"/SELECT\\s+(?:\\w+\\s*,\\s*)*\\*\\s*FROM/i"; classtype:web-application-attack; sid:2102832; rev:5;)'
   },
   {
     id: 3,
-    enabled: true,
-    rule: 'alert tcp any any -> any any (msg:"Malware C2 Communication"; content:"|00 00 00 01 00 00 00 00|"; depth:8; classtype:trojan-activity; sid:1000003; rev:1;)',
-    description: "Detects communication with known malware command and control servers"
+    timestamp: "2025-04-16T08:42:13.000Z",
+    message: "MALWARE-CNC Possible Emotet infection",
+    classification: "Trojan Activity",
+    priority: 1,
+    protocol: "TCP",
+    srcIp: "192.168.1.110",
+    srcPort: 49832,
+    dstIp: "185.244.31.142",
+    dstPort: 8080,
+    sid: 2028973,
+    ruleContent: 'alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"MALWARE-CNC Possible Emotet infection"; flow:to_server,established; content:"POST"; http_method; content:".php"; http_uri; content:"Mozilla/"; http_header; pcre:"/Content-Length\\s*:\\s*\\d{3,4}$/mH"; classtype:trojan-activity; sid:2028973; rev:2;)'
   },
   {
     id: 4,
-    enabled: true,
-    rule: 'alert tcp any any -> $HOME_NET any (msg:"Port Scanning"; flags:S; threshold:type threshold, track by_src, count 20, seconds 60; classtype:attempted-recon; sid:1000004; rev:1;)',
-    description: "Detects port scanning activity"
+    timestamp: "2025-04-16T07:55:02.000Z",
+    message: "OS-WINDOWS Microsoft Windows SMB remote code execution attempt",
+    classification: "Attempted Administrator Privilege Gain",
+    priority: 1,
+    protocol: "TCP",
+    srcIp: "203.0.113.55",
+    srcPort: 38291,
+    dstIp: "192.168.1.5",
+    dstPort: 445,
+    sid: 2024297,
+    ruleContent: 'alert tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"OS-WINDOWS Microsoft Windows SMB remote code execution attempt"; flow:to_server,established; content:"|FF|SMB|33 00|"; depth:6; content:"|01 00 00 00 00|"; within:5; distance:73; content:"|FF FF FF FF FF FF FF FF 00 00 00 00|"; within:12; distance:27; classtype:attempted-admin; sid:2024297; rev:4;)'
   },
   {
     id: 5,
-    enabled: false,
-    rule: 'alert udp any any -> any 53 (msg:"DNS Tunneling"; content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; content:!"|03|www"; content:!"|06|google"; content:!"|05|gmail"; pcre:"/[a-zA-Z0-9-]{30,}\\.(com|net|org)/i"; classtype:trojan-activity; sid:1000005; rev:1;)',
-    description: "Detects potential DNS tunneling"
+    timestamp: "2025-04-15T23:34:56.000Z",
+    message: "PROTOCOL-DNS zone transfer attempt",
+    classification: "Potentially Bad Traffic",
+    priority: 2,
+    protocol: "UDP",
+    srcIp: "203.0.113.22",
+    srcPort: 53245,
+    dstIp: "192.168.1.10",
+    dstPort: 53,
+    sid: 2100368,
+    ruleContent: 'alert udp $EXTERNAL_NET any -> $HOME_NET 53 (msg:"PROTOCOL-DNS zone transfer attempt"; content:"|00 00 FC|"; offset:14; depth:3; reference:cve,1999-0532; classtype:attempted-recon; sid:2100368; rev:12;)'
   }
 ];
 
-// Mock alerts based on the rules
-const initialAlerts = [
+// Mock data for Snort rules
+const snortRulesMock = [
   {
     id: 1,
-    timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-    rule_id: 1,
-    source_ip: "203.0.113.42",
-    destination_ip: "192.168.1.10",
-    message: "SSH brute force attempt",
-    protocol: "TCP",
-    source_port: 45123,
-    destination_port: 22,
-    severity: "high",
-    details: "Multiple failed SSH login attempts detected"
+    sid: 1000001,
+    name: "SQL Injection Attempt",
+    description: "Detects common SQL injection patterns in HTTP requests",
+    content: 'alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"SQL Injection Attempt"; flow:to_server,established; content:"SELECT"; nocase; content:"FROM"; distance:0; nocase; content:"WHERE"; distance:0; nocase; classtype:web-application-attack; sid:1000001; rev:1;)',
+    enabled: true,
+    category: "web-application-attack",
+    reference: "CVE-1999-0001",
+    updated: "2025-03-15T14:30:00.000Z"
   },
   {
     id: 2,
-    timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
-    rule_id: 2,
-    source_ip: "203.0.113.15",
-    destination_ip: "192.168.1.25",
-    message: "SQL Injection attempt",
-    protocol: "TCP",
-    source_port: 55123,
-    destination_port: 80,
-    severity: "critical",
-    details: "Malicious SQL pattern detected in HTTP request"
+    sid: 1000002,
+    name: "Potential XSS Attack",
+    description: "Detects cross-site scripting attempts in URI parameters",
+    content: 'alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"Potential XSS Attack"; flow:to_server,established; content:"<script>"; nocase; pcre:"/<script.*?>.*?<\/script>/i"; classtype:web-application-attack; sid:1000002; rev:2;)',
+    enabled: true,
+    category: "web-application-attack",
+    reference: "CVE-2007-5243",
+    updated: "2025-03-18T11:20:00.000Z"
   },
   {
     id: 3,
-    timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
-    rule_id: 3,
-    source_ip: "192.168.1.35",
-    destination_ip: "198.51.100.74",
-    message: "Malware C2 Communication",
-    protocol: "TCP",
-    source_port: 49347,
-    destination_port: 443,
-    severity: "critical",
-    details: "Communication with known malware C2 server detected"
+    sid: 1000003,
+    name: "Suspicious PowerShell Command",
+    description: "Detects obfuscated or suspicious PowerShell commands",
+    content: 'alert tcp $HOME_NET any -> $HOME_NET any (msg:"Suspicious PowerShell Command"; content:"powershell"; nocase; content:"-enc"; distance:0; nocase; content:"-exec"; distance:0; nocase; classtype:trojan-activity; sid:1000003; rev:1;)',
+    enabled: true,
+    category: "trojan-activity",
+    reference: "",
+    updated: "2025-03-22T09:45:00.000Z"
   },
   {
     id: 4,
-    timestamp: new Date(Date.now() - 60 * 60000).toISOString(),
-    rule_id: 4,
-    source_ip: "203.0.113.67",
-    destination_ip: "192.168.1.1",
-    message: "Port Scanning",
-    protocol: "TCP",
-    source_port: 34567,
-    destination_port: "multiple",
-    severity: "medium",
-    details: "Sequential port scan detected targeting multiple ports"
+    sid: 1000004,
+    name: "SMB Remote Code Execution Attempt",
+    description: "Detects attempts to exploit SMB vulnerabilities for RCE",
+    content: 'alert tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"SMB Remote Code Execution Attempt"; content:"|FF|SMB"; depth:4; pcre:"/.*\\\\IPC\\$/"; classtype:attempted-admin; sid:1000004; rev:3;)',
+    enabled: true,
+    category: "attempted-admin",
+    reference: "CVE-2017-0144",
+    updated: "2025-02-28T16:15:00.000Z"
+  },
+  {
+    id: 5,
+    sid: 1000005,
+    name: "DNS Zone Transfer",
+    description: "Detects DNS zone transfer attempts (AXFR)",
+    content: 'alert udp $EXTERNAL_NET any -> $HOME_NET 53 (msg:"DNS Zone Transfer Attempt"; content:"|00 00 FC|"; offset:14; depth:3; classtype:attempted-recon; sid:1000005; rev:1;)',
+    enabled: false,
+    category: "attempted-recon",
+    reference: "CVE-1999-0532",
+    updated: "2025-03-05T13:30:00.000Z"
   }
 ];
 
-// Mock console output
-const initialConsoleOutput = [
-  { timestamp: new Date(Date.now() - 120000).toISOString(), message: "Snort starting..." },
-  { timestamp: new Date(Date.now() - 115000).toISOString(), message: "Loading rules from local configuration..." },
-  { timestamp: new Date(Date.now() - 110000).toISOString(), message: "Loaded 5 rules successfully" },
-  { timestamp: new Date(Date.now() - 105000).toISOString(), message: "Initializing network interfaces..." },
-  { timestamp: new Date(Date.now() - 100000).toISOString(), message: "Listening on interface eth0" },
-  { timestamp: new Date(Date.now() - 95000).toISOString(), message: "Starting packet processing engine..." },
-  { timestamp: new Date(Date.now() - 90000).toISOString(), message: "Snort IDS/IPS engine running" },
-  { timestamp: new Date(Date.now() - 60000).toISOString(), message: "ALERT: [1:1000001:1] SSH brute force attempt [Classification: Attempted Administrator Privilege Gain] [Priority: 1] {TCP} 203.0.113.42:45123 -> 192.168.1.10:22" },
-  { timestamp: new Date(Date.now() - 30000).toISOString(), message: "ALERT: [1:1000002:1] SQL Injection attempt [Classification: Web Application Attack] [Priority: 1] {TCP} 203.0.113.15:55123 -> 192.168.1.25:80" },
-  { timestamp: new Date(Date.now() - 10000).toISOString(), message: "Packet statistics: Received: 15243, Analyzed: 15243, Dropped: 0" }
-];
+// Mock data for Snort configurations
+const snortConfigMock = {
+  version: "3.1.51.0",
+  configPath: "/etc/snort/snort.conf",
+  homenet: "192.168.1.0/24",
+  externalNet: "!$HOME_NET",
+  httpPorts: "80,443",
+  preprocessors: [
+    { name: "frag3_global", status: "enabled" },
+    { name: "frag3_engine", status: "enabled" },
+    { name: "stream5_global", status: "enabled" },
+    { name: "http_inspect", status: "enabled" },
+    { name: "ssh", status: "enabled" },
+    { name: "smtp", status: "enabled" }
+  ],
+  rulesetStats: {
+    totalRules: 8721,
+    enabledRules: 6543,
+    disabledRules: 2178,
+    categories: [
+      { name: "web-application-attack", count: 1254 },
+      { name: "exploit-kit", count: 873 },
+      { name: "malware-backdoor", count: 1782 },
+      { name: "trojan-activity", count: 1326 },
+      { name: "attempted-admin", count: 653 },
+      { name: "attempted-recon", count: 422 },
+      { name: "policy-violation", count: 265 },
+      { name: "other", count: 2146 }
+    ]
+  },
+  status: "running",
+  uptime: "5 days, 7 hours, 42 minutes",
+  lastReload: "2025-04-12T15:30:22.000Z",
+  performance: {
+    avgPacketsPerSecond: 8720,
+    avgMbitsPerSecond: 512,
+    avgMicrosecPerPacket: 28.3,
+    packetsDropped: 0.02
+  }
+};
 
 const SnortTool = () => {
-  const [rules, setRules] = useState(initialRules);
-  const [alerts, setAlerts] = useState(initialAlerts);
-  const [consoleOutput, setConsoleOutput] = useState(initialConsoleOutput);
-  const [snortStatus, setSnortStatus] = useState("running");
-  const [editingRule, setEditingRule] = useState<any>(null);
+  const [alerts] = useState(snortAlertsMock);
+  const [rules, setRules] = useState(snortRulesMock);
+  const [config] = useState(snortConfigMock);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isRunning, setIsRunning] = useState(config.status === "running");
+  
+  // New rule form
   const [newRule, setNewRule] = useState({
-    rule: "",
-    description: ""
+    name: "",
+    description: "",
+    content: "",
+    enabled: true,
+    category: "web-application-attack",
+    reference: ""
   });
-  const [stats, setStats] = useState({
-    packetsAnalyzed: 15243,
-    alertsGenerated: 4,
-    rulesFired: 3,
-    dropper: false,
-    uptime: "00:45:20"
+
+  // Filter function for alerts based on search and priority
+  const filteredAlerts = alerts.filter(alert => {
+    const matchesSearch = 
+      searchTerm === "" || 
+      alert.message.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      alert.srcIp.includes(searchTerm) ||
+      alert.dstIp.includes(searchTerm) ||
+      alert.sid.toString().includes(searchTerm);
+    
+    const matchesPriority = 
+      priorityFilter === "all" || 
+      alert.priority.toString() === priorityFilter;
+    
+    return matchesSearch && matchesPriority;
   });
-  const [selectedAlert, setSelectedAlert] = useState<any>(null);
-  
-  // Simulate Snort runtime
-  useEffect(() => {
-    if (snortStatus !== "running") return;
-    
-    // Update console output periodically
-    const consoleInterval = setInterval(() => {
-      // Generate a new console message
-      const messageTypes = [
-        "Packet statistics: Received: {packets}, Analyzed: {packets}, Dropped: 0",
-        "Processing traffic from network segments: 192.168.1.0/24 -> External Networks",
-        "Current packet rate: {rate} packets/sec",
-        "Snort instance healthy, memory usage: {memory}MB",
-        "No fragmentation attacks detected in the last 5 minutes",
-        "Rule performance: Average match time {time}ms"
-      ];
-      
-      const randomType = messageTypes[Math.floor(Math.random() * messageTypes.length)];
-      const newPackets = stats.packetsAnalyzed + Math.floor(Math.random() * 500) + 100;
-      const rate = Math.floor(Math.random() * 200) + 100;
-      const memory = Math.floor(Math.random() * 100) + 150;
-      const time = (Math.random() * 0.5 + 0.1).toFixed(2);
-      
-      let message = randomType
-        .replace("{packets}", newPackets.toString())
-        .replace("{rate}", rate.toString())
-        .replace("{memory}", memory.toString())
-        .replace("{time}", time);
-      
-      // Occasionally generate an alert
-      if (Math.random() > 0.7) {
-        const randomRule = rules[Math.floor(Math.random() * rules.length)];
-        if (randomRule && randomRule.enabled) {
-          const srcIP = `203.0.113.${Math.floor(Math.random() * 255)}`;
-          const dstIP = `192.168.1.${Math.floor(Math.random() * 255)}`;
-          const srcPort = Math.floor(Math.random() * 60000) + 1024;
-          const dstPort = randomRule.rule.includes("22") ? 22 : 
-                         randomRule.rule.includes("80") ? 80 : 
-                         randomRule.rule.includes("443") ? 443 : 
-                         Math.floor(Math.random() * 1000);
-          
-          const alertMessage = `ALERT: [1:${randomRule.id}:1] ${randomRule.description} [Priority: 1] {TCP} ${srcIP}:${srcPort} -> ${dstIP}:${dstPort}`;
-          
-          setConsoleOutput(prev => [...prev, {
-            timestamp: new Date().toISOString(),
-            message: alertMessage
-          }]);
-          
-          // Also add to alerts
-          const newAlert = {
-            id: Date.now(),
-            timestamp: new Date().toISOString(),
-            rule_id: randomRule.id,
-            source_ip: srcIP,
-            destination_ip: dstIP,
-            message: randomRule.description,
-            protocol: "TCP",
-            source_port: srcPort,
-            destination_port: dstPort,
-            severity: randomRule.rule.includes("attempted-admin") ? "high" : 
-                     randomRule.rule.includes("web-application-attack") ? "critical" : 
-                     randomRule.rule.includes("trojan-activity") ? "critical" : "medium",
-            details: `Alert triggered by Snort rule id ${randomRule.id}`
-          };
-          
-          setAlerts(prev => [newAlert, ...prev]);
-          setStats(prev => ({
-            ...prev,
-            alertsGenerated: prev.alertsGenerated + 1,
-            rulesFired: Math.min(rules.length, prev.rulesFired + (Math.random() > 0.7 ? 1 : 0))
-          }));
-          
-          // Show toast for new alert
-          toast.warning(`New Snort Alert: ${randomRule.description}`, {
-            description: `From ${srcIP} to ${dstIP}`,
-            action: {
-              label: "View",
-              onClick: () => setSelectedAlert(newAlert)
-            }
-          });
-        }
-      } else {
-        setConsoleOutput(prev => [...prev, {
-          timestamp: new Date().toISOString(),
-          message
-        }]);
-      }
-      
-      // Update stats
-      setStats(prev => {
-        // Parse uptime and add seconds
-        const [hours, minutes, seconds] = prev.uptime.split(':').map(Number);
-        const uptimeInSeconds = hours * 3600 + minutes * 60 + seconds + 10;
-        const newHours = Math.floor(uptimeInSeconds / 3600);
-        const newMinutes = Math.floor((uptimeInSeconds % 3600) / 60);
-        const newSeconds = uptimeInSeconds % 60;
-        
-        // Format with leading zeros
-        const formattedUptime = `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}:${newSeconds.toString().padStart(2, '0')}`;
-        
-        return {
-          ...prev,
-          packetsAnalyzed: newPackets,
-          uptime: formattedUptime
-        };
-      });
-    }, 10000);
-    
-    return () => clearInterval(consoleInterval);
-  }, [snortStatus, rules, stats]);
-  
-  const toggleSnortStatus = () => {
-    const newStatus = snortStatus === "running" ? "stopped" : "running";
-    setSnortStatus(newStatus);
-    
-    const statusMessage = {
-      timestamp: new Date().toISOString(),
-      message: newStatus === "running" ? "Snort engine started" : "Snort engine stopped"
-    };
-    
-    setConsoleOutput(prev => [...prev, statusMessage]);
-    
-    toast.info(`Snort ${newStatus}`, {
-      description: newStatus === "running" ? "IDS engine is now active" : "IDS engine has been stopped"
-    });
-  };
-  
+
+  // Filter function for rules based on search
+  const filteredRules = rules.filter(rule => {
+    return (
+      searchTerm === "" || 
+      rule.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      rule.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rule.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rule.sid.toString().includes(searchTerm)
+    );
+  });
+
+  // Handler for toggling rule enabled status
   const toggleRuleStatus = (id: number) => {
-    setRules(rules.map(rule => 
-      rule.id === id ? { ...rule, enabled: !rule.enabled } : rule
-    ));
+    setRules(
+      rules.map(rule => 
+        rule.id === id ? { ...rule, enabled: !rule.enabled } : rule
+      )
+    );
     
     const rule = rules.find(r => r.id === id);
-    if (rule) {
-      const statusMessage = {
-        timestamp: new Date().toISOString(),
-        message: `Rule ${id} ${rule.enabled ? 'disabled' : 'enabled'}: ${rule.description}`
-      };
-      
-      setConsoleOutput(prev => [...prev, statusMessage]);
-      
-      toast.info(`Rule ${rule.enabled ? 'disabled' : 'enabled'}`, {
-        description: rule.description
-      });
-    }
-  };
-  
-  const editRule = (rule: any) => {
-    setEditingRule(rule);
-  };
-  
-  const deleteRule = (id: number) => {
-    const rule = rules.find(r => r.id === id);
-    if (rule) {
-      setRules(rules.filter(r => r.id !== id));
-      
-      const statusMessage = {
-        timestamp: new Date().toISOString(),
-        message: `Rule ${id} deleted: ${rule.description}`
-      };
-      
-      setConsoleOutput(prev => [...prev, statusMessage]);
-      
-      toast.success(`Rule deleted`, {
-        description: rule.description
-      });
-    }
-  };
-  
-  const saveRule = () => {
-    if (!editingRule.rule || !editingRule.description) {
-      toast.error("Rule content and description are required");
-      return;
-    }
-    
-    setRules(rules.map(rule => 
-      rule.id === editingRule.id ? editingRule : rule
-    ));
-    
-    const statusMessage = {
-      timestamp: new Date().toISOString(),
-      message: `Rule ${editingRule.id} updated: ${editingRule.description}`
-    };
-    
-    setConsoleOutput(prev => [...prev, statusMessage]);
-    
-    toast.success(`Rule updated`, {
-      description: editingRule.description
+    toast.success(`Rule ${!rule?.enabled ? "enabled" : "disabled"}`, {
+      description: `${rule?.name} has been ${!rule?.enabled ? "enabled" : "disabled"}`
     });
-    
-    setEditingRule(null);
   };
-  
+
+  // Handler for adding a new rule
   const addRule = () => {
-    if (!newRule.rule || !newRule.description) {
-      toast.error("Rule content and description are required");
+    if (!newRule.name || !newRule.content) {
+      toast.error("Missing required fields", {
+        description: "Name and rule content are required"
+      });
       return;
     }
     
-    const ruleToAdd = {
-      ...newRule,
-      id: Math.max(...rules.map(r => r.id), 0) + 1,
-      enabled: true
-    };
+    const newId = Math.max(...rules.map(r => r.id)) + 1;
+    const newSid = Math.max(...rules.map(r => r.sid)) + 1;
     
-    setRules([...rules, ruleToAdd]);
+    const now = new Date().toISOString();
     
-    const statusMessage = {
-      timestamp: new Date().toISOString(),
-      message: `Rule ${ruleToAdd.id} added: ${ruleToAdd.description}`
-    };
+    setRules([
+      ...rules,
+      {
+        ...newRule,
+        id: newId,
+        sid: newSid,
+        updated: now
+      }
+    ]);
     
-    setConsoleOutput(prev => [...prev, statusMessage]);
-    
-    toast.success(`Rule added`, {
-      description: ruleToAdd.description
-    });
-    
+    // Reset form
     setNewRule({
-      rule: "",
-      description: ""
-    });
-  };
-  
-  const toggleDropperMode = () => {
-    setStats({
-      ...stats,
-      dropper: !stats.dropper
+      name: "",
+      description: "",
+      content: "",
+      enabled: true,
+      category: "web-application-attack",
+      reference: ""
     });
     
-    const statusMessage = {
-      timestamp: new Date().toISOString(),
-      message: `IPS mode ${!stats.dropper ? 'enabled' : 'disabled'}: ${!stats.dropper ? 'Dropping' : 'Only alerting on'} malicious packets`
-    };
-    
-    setConsoleOutput(prev => [...prev, statusMessage]);
-    
-    toast.info(`IPS mode ${!stats.dropper ? 'enabled' : 'disabled'}`, {
-      description: !stats.dropper ? 'Malicious packets will be dropped' : 'Alerts only mode activated'
+    toast.success("Snort rule created", {
+      description: `New rule "${newRule.name}" has been added with SID ${newSid}`
     });
   };
-  
-  const clearConsole = () => {
-    setConsoleOutput([{
-      timestamp: new Date().toISOString(),
-      message: "Console cleared"
-    }]);
+
+  // Function to toggle Snort service
+  const toggleSnortService = () => {
+    setIsRunning(!isRunning);
+    
+    if (isRunning) {
+      toast.info("Stopping Snort service", {
+        description: "Snort IDS service is shutting down"
+      });
+    } else {
+      toast.success("Starting Snort service", {
+        description: "Snort IDS service is now running"
+      });
+    }
   };
-  
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString();
+
+  // Function to reload Snort configuration
+  const reloadSnortConfig = () => {
+    toast.success("Snort configuration reloaded", {
+      description: "All rules and settings have been updated"
+    });
   };
-  
+
+  // Function to get color based on priority
+  const getPriorityColor = (priority: number) => {
+    switch (priority) {
+      case 1:
+        return "bg-red-500 hover:bg-red-600";
+      case 2:
+        return "bg-orange-500 hover:bg-orange-600";
+      case 3:
+        return "bg-yellow-500 hover:bg-yellow-600";
+      default:
+        return "bg-blue-500 hover:bg-blue-600";
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Snort IDS/IPS</h2>
+          <h1 className="text-3xl font-bold tracking-tight">Snort IDS/IPS</h1>
           <p className="text-muted-foreground">
-            Open-source intrusion detection and prevention system
+            Manage and monitor Snort network intrusion detection system
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant={stats.dropper ? "destructive" : "outline"}
-            onClick={toggleDropperMode}
+        <div className="flex gap-2">
+          <Button
+            variant={isRunning ? "destructive" : "default"}
+            className="flex items-center gap-2"
+            onClick={toggleSnortService}
           >
-            {stats.dropper ? "IPS Mode (Active)" : "IDS Mode (Passive)"}
+            {isRunning ? (
+              <>
+                <Pause className="h-4 w-4" />
+                Stop Service
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Start Service
+              </>
+            )}
           </Button>
-          <Button 
-            variant={snortStatus === "running" ? "destructive" : "default"}
-            onClick={toggleSnortStatus}
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={reloadSnortConfig}
           >
-            {snortStatus === "running" ? "Stop Snort" : "Start Snort"}
+            <RefreshCw className="h-4 w-4" />
+            Reload Config
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span className="hidden md:inline">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Snort Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  toast.success("Test alert generated", {
+                    description: "A test alert has been added to verify functionality"
+                  });
+                }}
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                <span>Generate Test Alert</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  toast.success("Rules updated from online sources", {
+                    description: "Downloaded 257 new and updated rules"
+                  });
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                <span>Update Ruleset</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  toast.success("PCAP analysis started", {
+                    description: "Analyzing captured traffic against ruleset"
+                  });
+                }}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                <span>Analyze PCAP File</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  toast.info("Advanced configuration", {
+                    description: "Configuration editor would open here"
+                  });
+                }}
+              >
+                <Code className="h-4 w-4 mr-2" />
+                <span>Edit snort.conf</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Engine Status</CardTitle>
-            <Shield className={`h-4 w-4 ${snortStatus === "running" ? "text-sentinel-success" : "text-destructive"}`} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold capitalize">{snortStatus}</div>
-            <p className="text-xs text-muted-foreground">
-              Uptime: {stats.uptime}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Packets Analyzed</CardTitle>
-            <Terminal className="h-4 w-4 text-sentinel-info" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.packetsAnalyzed.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              {Math.round(stats.packetsAnalyzed / (stats.uptime.split(":")[0] * 60 + parseInt(stats.uptime.split(":")[1])))} packets/min
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Alerts Generated</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-sentinel-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.alertsGenerated}</div>
-            <p className="text-xs text-muted-foreground">
-              From {stats.rulesFired} different rules
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Rules</CardTitle>
-            <FileText className="h-4 w-4 text-sentinel-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{rules.filter(r => r.enabled).length}</div>
-            <p className="text-xs text-muted-foreground">
-              {rules.length} total rules configured
-            </p>
-          </CardContent>
-        </Card>
+      {/* Service Status Banner */}
+      <div className={`flex items-center justify-between p-4 rounded-md ${isRunning ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+        <div className="flex items-center gap-3">
+          {isRunning ? (
+            <>
+              <Shield className="h-5 w-5 text-green-500" />
+              <div>
+                <p className="font-medium text-green-500">Snort Service Active</p>
+                <p className="text-sm text-muted-foreground">Version {config.version} | Uptime: {config.uptime}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <div>
+                <p className="font-medium text-red-500">Snort Service Inactive</p>
+                <p className="text-sm text-muted-foreground">IDS protection is currently disabled</p>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex flex-col items-end">
+            <span className="font-medium">{config.rulesetStats.enabledRules}</span>
+            <span className="text-xs text-muted-foreground">Enabled Rules</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="font-medium">
+              {isRunning ? config.performance.avgPacketsPerSecond : "0"}
+            </span>
+            <span className="text-xs text-muted-foreground">Packets/sec</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="font-medium">{alerts.length}</span>
+            <span className="text-xs text-muted-foreground">Alerts Today</span>
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="console" className="space-y-4">
-        <TabsList className="grid grid-cols-3 md:w-[400px] bg-background/50">
-          <TabsTrigger value="console">Console Output</TabsTrigger>
-          <TabsTrigger value="rules">Rules</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search rules, alerts, or IP addresses..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        {activeTab === "alerts" && (
+          <Select 
+            value={priorityFilter} 
+            onValueChange={setPriorityFilter}
+          >
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priorities</SelectItem>
+              <SelectItem value="1">Priority 1 (High)</SelectItem>
+              <SelectItem value="2">Priority 2 (Medium)</SelectItem>
+              <SelectItem value="3">Priority 3 (Low)</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full max-w-3xl">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Alerts
+          </TabsTrigger>
+          <TabsTrigger value="rules" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Rules
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Configuration
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="console" className="space-y-4">
-          <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="flex justify-between items-center">
-              <div>
-                <CardTitle>Snort Console</CardTitle>
-                <CardDescription>
-                  Real-time engine output
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={clearConsole}
-              >
-                Clear Console
-              </Button>
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard" className="space-y-4">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Rules</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{config.rulesetStats.totalRules}</div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{config.rulesetStats.enabledRules} enabled</span>
+                  <span>{config.rulesetStats.disabledRules} disabled</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Recent Alerts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{alerts.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Last: {new Date(alerts[0]?.timestamp).toLocaleTimeString()}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Traffic Rate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isRunning ? config.performance.avgPacketsPerSecond : "0"}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isRunning ? config.performance.avgMbitsPerSecond : "0"} Mbps
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Dropped Packets</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isRunning ? config.performance.packetsDropped : "0"}%
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isRunning ? config.performance.avgMicrosecPerPacket : "0"} μs/packet
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Recent Alerts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Alerts</CardTitle>
+              <CardDescription>
+                Most recent security events detected by Snort
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] w-full rounded-md border border-sentinel-light/10 bg-sentinel-dark/50 p-4">
-                <div className="space-y-2 font-mono text-sm">
-                  {consoleOutput.map((line, index) => (
-                    <div key={index} className="flex">
-                      <span className="text-sentinel-accent mr-2">[{formatTimestamp(line.timestamp)}]</span>
-                      <span className={
-                        line.message.includes("ALERT") 
-                          ? "text-red-500" 
-                          : line.message.includes("ERROR") 
-                            ? "text-orange-500"
-                            : line.message.includes("WARNING")
-                              ? "text-yellow-500"
-                              : "text-gray-200"
-                      }>
-                        {line.message}
-                      </span>
-                    </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Alert Message</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Destination</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead className="text-right">Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {alerts.slice(0, 3).map((alert) => (
+                    <TableRow key={alert.id}>
+                      <TableCell>
+                        {new Date(alert.timestamp).toLocaleTimeString()}
+                      </TableCell>
+                      <TableCell className="font-medium">{alert.message}</TableCell>
+                      <TableCell>{alert.srcIp}:{alert.srcPort}</TableCell>
+                      <TableCell>{alert.dstIp}:{alert.dstPort}</TableCell>
+                      <TableCell>
+                        <Badge className={getPriorityColor(alert.priority)}>
+                          P{alert.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            toast.info(alert.message, {
+                              description: `Alert SID: ${alert.sid} | Classification: ${alert.classification}`
+                            });
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              </ScrollArea>
+                </TableBody>
+              </Table>
+              <div className="flex justify-center mt-2">
+                <Button 
+                  variant="link" 
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => setActiveTab("alerts")}
+                >
+                  View all alerts
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Rule Categories */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Ruleset Composition</CardTitle>
+              <CardDescription>
+                Distribution of rules by category
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {config.rulesetStats.categories.map((category, idx) => (
+                  <div key={idx} className="flex items-center gap-4">
+                    <div className="w-40 truncate capitalize">{category.name.replace(/-/g, ' ')}</div>
+                    <div className="flex-1 h-3 rounded-full bg-secondary overflow-hidden">
+                      <div 
+                        className="h-full bg-primary"
+                        style={{ width: `${(category.count / config.rulesetStats.totalRules) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-16 text-right text-sm">{category.count}</div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="rules" className="space-y-4">
-          <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
+        {/* Alerts Tab */}
+        <TabsContent value="alerts" className="space-y-4">
+          <Card>
             <CardHeader>
-              <CardTitle>Snort Rules</CardTitle>
+              <CardTitle>Snort Alerts</CardTitle>
               <CardDescription>
-                Detection rules configuration
+                Security events detected by Snort IDS
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border border-sentinel-light/10 mb-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Alert Message</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Destination</TableHead>
+                    <TableHead>Protocol</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAlerts.map((alert) => (
+                    <TableRow key={alert.id}>
+                      <TableCell>
+                        {new Date(alert.timestamp).toLocaleTimeString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium truncate max-w-[240px]" title={alert.message}>
+                          {alert.message}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {alert.classification}
+                        </div>
+                      </TableCell>
+                      <TableCell>{alert.srcIp}:{alert.srcPort}</TableCell>
+                      <TableCell>{alert.dstIp}:{alert.dstPort}</TableCell>
+                      <TableCell>{alert.protocol}</TableCell>
+                      <TableCell>
+                        <Badge className={getPriorityColor(alert.priority)}>
+                          Priority {alert.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast.info("Rule Details", {
+                                  description: alert.ruleContent
+                                });
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Code className="h-4 w-4" />
+                              <span>View Rule</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast.info("Packet Details", {
+                                  description: "Packet capture details would show here"
+                                });
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span>View Packet</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast.success("Added to blocklist", {
+                                  description: `${alert.srcIp} has been added to the blocklist`
+                                });
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <X className="h-4 w-4" />
+                              <span>Block Source IP</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rules.map((rule) => (
-                      <TableRow key={rule.id} className="animate-fade-in">
-                        <TableCell>
+                  ))}
+                  {filteredAlerts.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                        No alerts match your search criteria
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => {
+                  toast.success("Alerts exported", {
+                    description: "All alerts have been exported to CSV format"
+                  });
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Export Alerts
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Showing {filteredAlerts.length} of {alerts.length} alerts
+              </div>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Rules Tab */}
+        <TabsContent value="rules" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Rules</CardTitle>
+              <CardDescription>
+                Configure and customize Snort detection rules
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">SID</TableHead>
+                    <TableHead>Rule Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRules.map((rule) => (
+                    <TableRow key={rule.id}>
+                      <TableCell className="font-mono text-xs">{rule.sid}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{rule.name}</div>
+                        <div className="text-xs text-muted-foreground">{rule.description}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {rule.category.replace(/-/g, ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {rule.reference ? (
+                          <span className="text-xs font-mono">{rule.reference}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {new Date(rule.updated).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {rule.enabled ? (
+                          <Badge className="bg-green-500 hover:bg-green-600">Enabled</Badge>
+                        ) : (
+                          <Badge variant="outline">Disabled</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
                           <Button 
-                            variant={rule.enabled ? "default" : "outline"} 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              toast.info("Rule Content", {
+                                description: <div className="font-mono text-xs break-all">{rule.content}</div>
+                              });
+                            }}
+                          >
+                            <Code className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant={rule.enabled ? "destructive" : "default"}
                             size="sm"
                             onClick={() => toggleRuleStatus(rule.id)}
                           >
                             {rule.enabled ? (
-                              <><Check className="h-4 w-4 mr-1" /> Enabled</>
+                              <X className="h-4 w-4" />
                             ) : (
-                              <><X className="h-4 w-4 mr-1" /> Disabled</>
+                              <Check className="h-4 w-4" />
                             )}
                           </Button>
-                        </TableCell>
-                        <TableCell className="font-medium">{rule.description}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => editRule(rule)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteRule(rule.id)}
-                            className="text-destructive"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredRules.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                        No rules match your search criteria
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          {/* Add Custom Rule */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Custom Rule</CardTitle>
+              <CardDescription>
+                Create a new Snort detection rule
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rule-name">Rule Name</Label>
+                  <Input 
+                    id="rule-name" 
+                    placeholder="e.g., Custom SQL Injection Detection" 
+                    value={newRule.name}
+                    onChange={(e) => setNewRule({...newRule, name: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="rule-category">Category</Label>
+                    <Select 
+                      value={newRule.category}
+                      onValueChange={(value) => setNewRule({...newRule, category: value})}
+                    >
+                      <SelectTrigger>
+                        <Select.Value placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="web-application-attack">Web Application Attack</SelectItem>
+                        <SelectItem value="trojan-activity">Trojan Activity</SelectItem>
+                        <SelectItem value="attempted-admin">Attempted Admin</SelectItem>
+                        <SelectItem value="attempted-recon">Attempted Recon</SelectItem>
+                        <SelectItem value="policy-violation">Policy Violation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rule-reference">Reference (optional)</Label>
+                    <Input 
+                      id="rule-reference" 
+                      placeholder="e.g., CVE-2023-12345" 
+                      value={newRule.reference}
+                      onChange={(e) => setNewRule({...newRule, reference: e.target.value})}
+                    />
+                  </div>
+                </div>
               </div>
               
-              {editingRule ? (
-                <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm animate-scale-in">
-                  <CardHeader>
-                    <CardTitle>Edit Rule</CardTitle>
-                    <CardDescription>
-                      Modify rule #{editingRule.id}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-rule-description">Description</Label>
-                      <Input 
-                        id="edit-rule-description"
-                        value={editingRule.description}
-                        onChange={(e) => setEditingRule({...editingRule, description: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-rule-content">Rule Content</Label>
-                      <textarea 
-                        id="edit-rule-content"
-                        className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={editingRule.rule}
-                        onChange={(e) => setEditingRule({...editingRule, rule: e.target.value})}
-                      />
-                    </div>
-                    <div className="flex justify-between">
-                      <Button
-                        variant="outline"
-                        onClick={() => setEditingRule(null)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={saveRule}
-                      >
-                        <Save className="mr-2 h-4 w-4" /> Save Rule
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle>Add New Rule</CardTitle>
-                    <CardDescription>
-                      Create a custom Snort rule
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="rule-description">Description</Label>
-                      <Input 
-                        id="rule-description"
-                        placeholder="Detects SSH brute force attempts"
-                        value={newRule.description}
-                        onChange={(e) => setNewRule({...newRule, description: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="rule-content">Rule Content</Label>
-                      <textarea 
-                        id="rule-content"
-                        className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="alert tcp any any -> $HOME_NET 22 (msg:\"SSH brute force attempt\"; flow:to_server; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-admin; sid:1000001; rev:1;)"
-                        value={newRule.rule}
-                        onChange={(e) => setNewRule({...newRule, rule: e.target.value})}
-                      />
-                    </div>
-                    <Button 
-                      className="w-full"
-                      onClick={addRule}
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Add Rule
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="rule-description">Description</Label>
+                <Input 
+                  id="rule-description" 
+                  placeholder="Describe what this rule detects" 
+                  value={newRule.description}
+                  onChange={(e) => setNewRule({...newRule, description: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="rule-content">Rule Content (Snort format)</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs"
+                    onClick={() => {
+                      toast.info("Snort Rule Format Help", {
+                        description: "Snort rule documentation would show here"
+                      });
+                    }}
+                  >
+                    Format Help
+                  </Button>
+                </div>
+                <Textarea 
+                  id="rule-content" 
+                  placeholder='alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"Custom Rule"; content:"malicious"; sid:1000042; rev:1;)'
+                  className="font-mono h-32"
+                  value={newRule.content}
+                  onChange={(e) => setNewRule({...newRule, content: e.target.value})}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={newRule.enabled}
+                  onCheckedChange={(checked) => setNewRule({...newRule, enabled: checked})}
+                  id="rule-enabled" 
+                />
+                <Label htmlFor="rule-enabled">Enable rule after creation</Label>
+              </div>
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setNewRule({
+                    name: "",
+                    description: "",
+                    content: "",
+                    enabled: true,
+                    category: "web-application-attack",
+                    reference: ""
+                  });
+                }}
+              >
+                Reset
+              </Button>
+              <Button 
+                onClick={addRule}
+                className="flex items-center gap-2"
+              >
+                <Check className="h-4 w-4" />
+                Create Rule
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
         
-        <TabsContent value="alerts" className="space-y-4">
-          <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
+        {/* Configuration Tab */}
+        <TabsContent value="settings" className="space-y-4">
+          <Card>
             <CardHeader>
-              <CardTitle>Snort Alerts</CardTitle>
+              <CardTitle>Snort Configuration</CardTitle>
               <CardDescription>
-                Recent detections from Snort engine
+                View and modify Snort configuration settings
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-md border border-sentinel-light/10">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Message</TableHead>
-                      <TableHead className="hidden md:table-cell">Source</TableHead>
-                      <TableHead className="hidden md:table-cell">Destination</TableHead>
-                      <TableHead>Severity</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {alerts.map((alert) => (
-                      <TableRow key={alert.id} className="animate-fade-in">
-                        <TableCell>
-                          {formatTimestamp(alert.timestamp)}
-                        </TableCell>
-                        <TableCell className="font-medium">{alert.message}</TableCell>
-                        <TableCell className="hidden md:table-cell">{alert.source_ip}:{alert.source_port}</TableCell>
-                        <TableCell className="hidden md:table-cell">{alert.destination_ip}:{alert.destination_port}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            className={
-                              alert.severity === "critical" 
-                                ? "bg-red-500 text-white" 
-                                : alert.severity === "high"
-                                  ? "bg-orange-500 text-white"
-                                  : alert.severity === "medium"
-                                    ? "bg-yellow-500 text-black"
-                                    : "bg-blue-500 text-white"
-                            }
-                          >
-                            {alert.severity}
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-medium mb-2">General Settings</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Snort Version</Label>
+                        <div className="p-2 bg-muted rounded text-sm">{config.version}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Configuration Path</Label>
+                        <div className="p-2 bg-muted rounded text-sm font-mono">{config.configPath}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="home-net">HOME_NET</Label>
+                      <Input 
+                        id="home-net" 
+                        defaultValue={config.homenet}
+                      />
+                      <p className="text-xs text-muted-foreground">Define your internal network range</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="external-net">EXTERNAL_NET</Label>
+                      <Input 
+                        id="external-net" 
+                        defaultValue={config.externalNet}
+                      />
+                      <p className="text-xs text-muted-foreground">Define external network (typically !$HOME_NET)</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="http-ports">HTTP_PORTS</Label>
+                      <Input 
+                        id="http-ports" 
+                        defaultValue={config.httpPorts}
+                      />
+                      <p className="text-xs text-muted-foreground">Comma-separated list of HTTP ports</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-2">Preprocessors</h3>
+                  <div className="space-y-2">
+                    {config.preprocessors.map((preprocessor, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded">
+                        <span className="font-mono text-sm">{preprocessor.name}</span>
+                        <div>
+                          <Badge variant={preprocessor.status === "enabled" ? "default" : "outline"}>
+                            {preprocessor.status}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedAlert(alert)}
-                          >
-                            Details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                  
+                  <h3 className="font-medium mt-6 mb-2">Performance Settings</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="perf-mode">Detection Mode</Label>
+                        <Select defaultValue="balanced">
+                          <SelectTrigger id="perf-mode">
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="balanced">Balanced</SelectItem>
+                            <SelectItem value="speed">Maximum Speed</SelectItem>
+                            <SelectItem value="coverage">Maximum Coverage</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="perf-threads">Detection Threads</Label>
+                        <Select defaultValue="auto">
+                          <SelectTrigger id="perf-threads">
+                            <SelectValue placeholder="Select threads" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">Auto (Based on CPU)</SelectItem>
+                            <SelectItem value="1">1 Thread</SelectItem>
+                            <SelectItem value="2">2 Threads</SelectItem>
+                            <SelectItem value="4">4 Threads</SelectItem>
+                            <SelectItem value="8">8 Threads</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="perf-pkt-size">Maximum Packet Size</Label>
+                        <span className="text-sm">9000 bytes</span>
+                      </div>
+                      <Input 
+                        id="perf-pkt-size" 
+                        type="range"
+                        min="1500"
+                        max="65535"
+                        defaultValue="9000"
+                      />
+                      <p className="text-xs text-muted-foreground">Larger values use more memory but can handle jumbo frames</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               
-              {selectedAlert && (
-                <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm animate-scale-in mt-4">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Alert Details</span>
-                      <Badge 
-                        className={
-                          selectedAlert.severity === "critical" 
-                            ? "bg-red-500 text-white" 
-                            : selectedAlert.severity === "high"
-                              ? "bg-orange-500 text-white"
-                              : selectedAlert.severity === "medium"
-                                ? "bg-yellow-500 text-black"
-                                : "bg-blue-500 text-white"
-                        }
-                      >
-                        {selectedAlert.severity}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      {new Date(selectedAlert.timestamp).toLocaleString()}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Rule ID</Label>
-                        <p>{selectedAlert.rule_id}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Protocol</Label>
-                        <p>{selectedAlert.protocol}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Source</Label>
-                        <p>{selectedAlert.source_ip}:{selectedAlert.source_port}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Destination</Label>
-                        <p>{selectedAlert.destination_ip}:{selectedAlert.destination_port}</p>
-                      </div>
+              <div className="border-t pt-6">
+                <h3 className="font-medium mb-2">Output Options</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="alert-fast" defaultChecked />
+                      <Label htmlFor="alert-fast">Fast Alert Output</Label>
                     </div>
-                    
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Message</Label>
-                      <p>{selectedAlert.message}</p>
+                    <p className="text-xs text-muted-foreground">Basic alerts with minimal information</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="alert-full" defaultChecked />
+                      <Label htmlFor="alert-full">Full Alert Output</Label>
                     </div>
-                    
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Details</Label>
-                      <p>{selectedAlert.details}</p>
+                    <p className="text-xs text-muted-foreground">Detailed alerts with packet data</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="alert-syslog" />
+                      <Label htmlFor="alert-syslog">Syslog Output</Label>
                     </div>
-                    
-                    <div className="pt-2 flex justify-between">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedAlert(null)}
-                      >
-                        Close
-                      </Button>
-                      
-                      <div className="space-x-2">
-                        {stats.dropper && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                          >
-                            Block Source IP
-                          </Button>
-                        )}
-                        <Button
-                          variant="default"
-                          size="sm"
-                        >
-                          Add to Report
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                    <p className="text-xs text-muted-foreground">Send alerts to system log</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  toast.info("Configuration reset", {
+                    description: "All changes have been discarded"
+                  });
+                }}
+              >
+                Reset Changes
+              </Button>
+              <Button 
+                onClick={() => {
+                  toast.success("Configuration saved", {
+                    description: "Changes will take effect after service restart"
+                  });
+                }}
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save Configuration
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
