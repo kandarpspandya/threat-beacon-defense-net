@@ -33,7 +33,6 @@ import Logging from "./pages/response/Logging";
 import Reporting from "./pages/response/Reporting";
 
 // IDPS Tools Pages
-import SnortTool from "./pages/tools/SnortTool";
 import SuricataTool from "./pages/tools/SuricataTool";
 import SecurityOnion from "./pages/tools/SecurityOnion";
 import OwaspZap from "./pages/tools/OwaspZap";
@@ -77,7 +76,6 @@ const App = () => (
               <Route path="/response/reporting" element={<Reporting />} />
               
               {/* IDPS Tools */}
-              <Route path="/tools/snort" element={<SnortTool />} />
               <Route path="/tools/suricata" element={<SuricataTool />} />
               <Route path="/tools/security-onion" element={<SecurityOnion />} />
               <Route path="/tools/zap" element={<OwaspZap />} />
