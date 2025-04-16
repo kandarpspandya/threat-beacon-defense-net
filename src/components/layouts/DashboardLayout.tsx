@@ -1,9 +1,26 @@
 
 import { useState, useEffect } from "react";
 import { Outlet, Navigate, Link, useLocation } from "react-router-dom";
-import { Shield, Bell, Activity, Settings, Menu, X, LogOut, BarChart2 } from "lucide-react";
+import { 
+  Shield, Bell, Activity, Settings, Menu, X, LogOut, 
+  BarChart2, FilterX, Search, AlertTriangle, Eye, 
+  Network, Database, FileJson, TerminalSquare, Zap,
+  FileText, BookOpen, Clock, Lock, Truck
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Mock authentication check - this would be replaced with real auth logic
 const isAuthenticated = () => {
@@ -12,26 +29,51 @@ const isAuthenticated = () => {
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeToolTip, setActiveToolTip] = useState("");
   const location = useLocation();
   
-  // In a real implementation, we would check with a proper auth system
-  // For demo purposes, we'll set the user as authenticated so we can see the dashboard
   useEffect(() => {
-    localStorage.setItem("sentinel-auth", "true");
-  }, []);
+    // Show a welcome toast when the dashboard loads
+    if (location.pathname === "/") {
+      setTimeout(() => {
+        toast.success("Welcome to SentinelNet", {
+          description: "Your network is now being monitored in real-time",
+        });
+      }, 1000);
+    }
+  }, [location.pathname]);
 
-  // For actual implementation, uncomment this to require authentication
-  /*
+  // Check authentication
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
-  */
 
-  const navigation = [
+  const mainNavigation = [
     { name: "Dashboard", href: "/", icon: Shield, current: location.pathname === "/" },
     { name: "Alerts", href: "/alerts", icon: Bell, current: location.pathname === "/alerts" },
     { name: "Traffic Analysis", href: "/traffic", icon: Activity, current: location.pathname === "/traffic" },
     { name: "Settings", href: "/settings", icon: Settings, current: location.pathname === "/settings" },
+  ];
+
+  const detectionTools = [
+    { name: "Signature Detection", href: "/signature-detection", icon: FileJson, description: "Pattern matching against known threats" },
+    { name: "Anomaly Detection", href: "/anomaly-detection", icon: AlertTriangle, description: "ML-based unusual behavior detection" },
+    { name: "Protocol Analysis", href: "/protocol-analysis", icon: Network, description: "Stateful inspection of network protocols" },
+  ];
+
+  const idpsTools = [
+    { name: "Snort", href: "/tools/snort", icon: Eye, description: "Open-source network IDS/IPS" },
+    { name: "Suricata", href: "/tools/suricata", icon: Zap, description: "High performance network IDS/IPS" },
+    { name: "Security Onion", href: "/tools/security-onion", icon: Shield, description: "Security monitoring platform" },
+    { name: "OWASP ZAP", href: "/tools/zap", icon: Lock, description: "Web application security scanner" },
+    { name: "RequestShield", href: "/tools/requestshield", icon: FilterX, description: "API security monitoring" },
+  ];
+
+  const responseTools = [
+    { name: "Traffic Blocking", href: "/response/blocking", icon: FilterX, description: "Automated threat prevention" },
+    { name: "Alert Management", href: "/response/alerting", icon: Bell, description: "Notification configuration" },
+    { name: "Logging", href: "/response/logging", icon: Clock, description: "Security event logging" },
+    { name: "Reporting", href: "/response/reporting", icon: FileText, description: "Generate security reports" },
   ];
 
   return (
@@ -58,22 +100,174 @@ const DashboardLayout = () => {
           </Button>
         </div>
         <div className="flex-1 overflow-auto p-4">
-          <nav className="flex flex-col space-y-1">
-            {navigation.map((item) => (
+          <nav className="flex flex-col space-y-6">
+            {/* Main Navigation */}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+                Main Navigation
+              </p>
+              {mainNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    item.current
+                      ? "bg-sentinel-accent/10 text-sentinel-accent"
+                      : "text-white/70 hover:bg-sentinel-light/10 hover:text-white"
+                  )}
+                >
+                  <item.icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* Detection Methods */}
+            <Collapsible className="space-y-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white rounded-md">
+                <div className="flex items-center">
+                  <Search className="mr-3 h-5 w-5" />
+                  <span>Detection Methods</span>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 transition-transform ui-open:rotate-180"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-3 space-y-1">
+                {detectionTools.map((tool) => (
+                  <TooltipProvider key={tool.name}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={tool.href}
+                          className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white ml-5"
+                        >
+                          <tool.icon className="mr-3 h-4 w-4" />
+                          {tool.name}
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{tool.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+            
+            {/* Response Tools */}
+            <Collapsible className="space-y-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white rounded-md">
+                <div className="flex items-center">
+                  <Zap className="mr-3 h-5 w-5" />
+                  <span>Response Tools</span>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 transition-transform ui-open:rotate-180"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-3 space-y-1">
+                {responseTools.map((tool) => (
+                  <TooltipProvider key={tool.name}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={tool.href}
+                          className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white ml-5"
+                        >
+                          <tool.icon className="mr-3 h-4 w-4" />
+                          {tool.name}
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{tool.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* IDPS Tools */}
+            <Collapsible className="space-y-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white rounded-md">
+                <div className="flex items-center">
+                  <TerminalSquare className="mr-3 h-5 w-5" />
+                  <span>IDPS Tools</span>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 transition-transform ui-open:rotate-180"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-3 space-y-1">
+                {idpsTools.map((tool) => (
+                  <TooltipProvider key={tool.name}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={tool.href}
+                          className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white ml-5"
+                        >
+                          <tool.icon className="mr-3 h-4 w-4" />
+                          {tool.name}
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{tool.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Documentation */}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+                Documentation
+              </p>
               <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  item.current
-                    ? "bg-sentinel-accent/10 text-sentinel-accent"
-                    : "text-white/70 hover:bg-sentinel-light/10 hover:text-white"
-                )}
+                to="/documentation"
+                className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white"
               >
-                <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                <BookOpen className="mr-3 h-5 w-5" />
+                User Guide
               </Link>
-            ))}
+            </div>
           </nav>
         </div>
         <div className="p-4 border-t border-sentinel-light/10">
@@ -110,15 +304,19 @@ const DashboardLayout = () => {
           {/* Current page title */}
           <div className="flex-1">
             <h1 className="text-lg font-semibold">
-              {navigation.find((item) => item.current)?.name || "Dashboard"}
+              {mainNavigation.find((item) => item.current)?.name || "Dashboard"}
             </h1>
           </div>
           
-          {/* Status indicators could go here */}
+          {/* Status indicators */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-sentinel-success animate-pulse"></span>
               <span className="text-sm text-sentinel-success">System Online</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-sentinel-warning animate-pulse"></span>
+              <span className="text-sm text-sentinel-warning">3 Active Alerts</span>
             </div>
           </div>
         </header>

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +20,27 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AuthLayout from "./components/layouts/AuthLayout";
 import DashboardLayout from "./components/layouts/DashboardLayout";
+
+// New Detection Tools Pages
+import SignatureDetection from "./pages/detection/SignatureDetection";
+import AnomalyDetection from "./pages/detection/AnomalyDetection";
+import ProtocolAnalysis from "./pages/detection/ProtocolAnalysis";
+
+// New Response Tools Pages
+import TrafficBlocking from "./pages/response/TrafficBlocking";
+import AlertManagement from "./pages/response/AlertManagement";
+import Logging from "./pages/response/Logging";
+import Reporting from "./pages/response/Reporting";
+
+// IDPS Tools Pages
+import SnortTool from "./pages/tools/SnortTool";
+import SuricataTool from "./pages/tools/SuricataTool";
+import SecurityOnion from "./pages/tools/SecurityOnion";
+import OwaspZap from "./pages/tools/OwaspZap";
+import RequestShield from "./pages/tools/RequestShield";
+
+// Documentation
+import Documentation from "./pages/Documentation";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +64,27 @@ const App = () => (
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/traffic" element={<TrafficAnalysis />} />
               <Route path="/settings" element={<Settings />} />
+              
+              {/* Detection Methods */}
+              <Route path="/signature-detection" element={<SignatureDetection />} />
+              <Route path="/anomaly-detection" element={<AnomalyDetection />} />
+              <Route path="/protocol-analysis" element={<ProtocolAnalysis />} />
+              
+              {/* Response Tools */}
+              <Route path="/response/blocking" element={<TrafficBlocking />} />
+              <Route path="/response/alerting" element={<AlertManagement />} />
+              <Route path="/response/logging" element={<Logging />} />
+              <Route path="/response/reporting" element={<Reporting />} />
+              
+              {/* IDPS Tools */}
+              <Route path="/tools/snort" element={<SnortTool />} />
+              <Route path="/tools/suricata" element={<SuricataTool />} />
+              <Route path="/tools/security-onion" element={<SecurityOnion />} />
+              <Route path="/tools/zap" element={<OwaspZap />} />
+              <Route path="/tools/requestshield" element={<RequestShield />} />
+              
+              {/* Documentation */}
+              <Route path="/documentation" element={<Documentation />} />
             </Route>
             
             {/* Catch All */}
