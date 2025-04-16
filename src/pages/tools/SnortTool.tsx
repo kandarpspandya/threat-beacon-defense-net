@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   AlertTriangle, 
@@ -13,10 +12,11 @@ import {
   Download, 
   Play,
   Pause,
-  Settings,
+  Settings2,
   ChevronDown,
   ChevronRight,
-  Clock,
+  Search as SearchIcon,
+  Save as SaveIcon,
   Code,
   Shield,
   Info
@@ -409,7 +409,7 @@ const SnortTool = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
+                <Settings2 className="h-4 w-4" />
                 <span className="hidden md:inline">Actions</span>
               </Button>
             </DropdownMenuTrigger>
@@ -503,7 +503,7 @@ const SnortTool = () => {
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search rules, alerts, or IP addresses..."
@@ -546,7 +546,7 @@ const SnortTool = () => {
             Rules
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
+            <Settings2 className="h-4 w-4" />
             Configuration
           </TabsTrigger>
         </TabsList>
@@ -1108,7 +1108,7 @@ const SnortTool = () => {
                         <Label htmlFor="perf-mode">Detection Mode</Label>
                         <Select defaultValue="balanced">
                           <SelectTrigger id="perf-mode">
-                            <SelectValue placeholder="Select mode" />
+                            <Select.Value placeholder="Select mode" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="balanced">Balanced</SelectItem>
@@ -1121,7 +1121,7 @@ const SnortTool = () => {
                         <Label htmlFor="perf-threads">Detection Threads</Label>
                         <Select defaultValue="auto">
                           <SelectTrigger id="perf-threads">
-                            <SelectValue placeholder="Select threads" />
+                            <Select.Value placeholder="Select threads" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="auto">Auto (Based on CPU)</SelectItem>
@@ -1198,7 +1198,7 @@ const SnortTool = () => {
                 }}
                 className="flex items-center gap-2"
               >
-                <Save className="h-4 w-4" />
+                <SaveIcon className="h-4 w-4" />
                 Save Configuration
               </Button>
             </CardFooter>

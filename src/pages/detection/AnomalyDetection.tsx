@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Brain, AlertTriangle, Activity, BarChart2, RefreshCw, Settings2, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -500,7 +499,7 @@ const AnomalyDetection = () => {
           </CardHeader>
           <CardContent className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={baselineData}>
+              <BarChart2 data={baselineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" />
                 <XAxis 
                   dataKey="name" 
@@ -527,7 +526,7 @@ const AnomalyDetection = () => {
                   strokeWidth={2}
                   name="Baseline Traffic Volume"
                 />
-              </BarChart>
+              </BarChart2>
             </ResponsiveContainer>
           </CardContent>
         </Card>
