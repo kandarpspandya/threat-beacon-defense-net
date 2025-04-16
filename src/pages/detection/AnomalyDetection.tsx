@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // Mock training data
 const mockTrainingData = [
@@ -499,7 +499,7 @@ const AnomalyDetection = () => {
           </CardHeader>
           <CardContent className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart2 data={baselineData}>
+              <BarChart data={baselineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" />
                 <XAxis 
                   dataKey="name" 
@@ -519,14 +519,12 @@ const AnomalyDetection = () => {
                   }}
                 />
                 <Legend />
-                <Line 
-                  type="monotone" 
+                <Bar 
                   dataKey="value" 
-                  stroke="#4FD1C5" 
-                  strokeWidth={2}
+                  fill="#4FD1C5" 
                   name="Baseline Traffic Volume"
                 />
-              </BarChart2>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
