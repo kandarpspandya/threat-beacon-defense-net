@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -137,5 +138,101 @@
   
   .threat-safe {
     @apply text-sentinel-success;
+  }
+  
+  /* New Animation Classes */
+  .security-scan {
+    position: absolute;
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(90deg, transparent, rgba(100, 255, 218, 0.5), transparent);
+    top: 0;
+    left: -100%;
+    animation: scan 2s linear infinite;
+  }
+  
+  .security-particle {
+    @apply absolute h-2 w-2 rounded-full bg-sentinel-accent/60;
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-text-gradient {
+    background-size: 200% auto;
+    background-image: linear-gradient(90deg, white, theme('colors.sentinel.accent'), cyan, white);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: textGradient 10s linear infinite;
+  }
+  
+  .animate-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+  
+  .animate-fade-in-delayed {
+    animation: fadeIn 1s ease-out 0.5s both;
+  }
+  
+  .animate-fade-in-delayed-2 {
+    animation: fadeIn 1s ease-out 0.8s both;
+  }
+}
+
+@keyframes scan {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-15px) scale(1.2);
+    opacity: 0.9;
+  }
+}
+
+@keyframes textGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
