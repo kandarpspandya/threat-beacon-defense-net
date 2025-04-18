@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Shield, AlertTriangle, Activity, Server, BarChart2, ArrowUpRight, Zap, Globe, Database } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,9 +10,15 @@ import { NetworkActivityChart } from "@/components/dashboard/NetworkActivityChar
 import { ProtocolDistribution } from "@/components/dashboard/ProtocolDistribution";
 import { AlertSummary } from "@/components/dashboard/AlertSummary";
 import { TopConnections } from "@/components/dashboard/TopConnections";
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { networkService } from "@/services/network";
+import { RealTimeStatus } from "@/components/dashboard/RealTimeStatus";
 
 const Dashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("24h");
+  const [networkStatus, setNetworkStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'error'>(
+    networkService.status
+  );
 
   // Mock data - in a real app, this would come from the API
   const stats = {
@@ -64,10 +70,25 @@ const Dashboard = () => {
     },
   ];
 
+  // Update network status periodically
+  useEffect(() => {
+    const statusInterval = setInterval(() => {
+      setNetworkStatus(networkService.status);
+    }, 3000);
+    
+    return () => clearInterval(statusInterval);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <div className="flex items-center mt-1">
+            <p className="text-muted-foreground mr-2">Network status</p>
+            <RealTimeStatus status={networkStatus} />
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">
             <ArrowUpRight className="mr-2 h-4 w-4" />
@@ -77,59 +98,12 @@ const Dashboard = () => {
       </div>
 
       {/* Overview Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Threats</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-sentinel-danger" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-sentinel-danger">{stats.activeThreats}</div>
-            <p className="text-xs text-muted-foreground">
-              +2 in the last 24 hours
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Blocked Attacks</CardTitle>
-            <Shield className="h-4 w-4 text-sentinel-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.blockedAttacks}</div>
-            <p className="text-xs text-muted-foreground">
-              +43 in the last 24 hours
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Traffic Analyzed</CardTitle>
-            <Activity className="h-4 w-4 text-sentinel-info" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.trafficAnalyzed}</div>
-            <p className="text-xs text-muted-foreground">
-              In the last 24 hours
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
-            <Server className="h-4 w-4 text-sentinel-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.systemUptime}</div>
-            <p className="text-xs text-muted-foreground">
-              30-day average
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardStats 
+        activeThreats={stats.activeThreats}
+        blockedAttacks={stats.blockedAttacks}
+        trafficAnalyzed={stats.trafficAnalyzed}
+        systemUptime={stats.systemUptime}
+      />
 
       {/* Main Dashboard Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
@@ -344,3 +318,64 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+function Zap(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+function Globe(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" x2="22" y1="12" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function Database(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  );
+}

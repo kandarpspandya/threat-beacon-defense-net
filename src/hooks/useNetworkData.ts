@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { NetworkDataPoint, NetworkEvent } from '@/types/network';
-import { networkService } from '@/services/networkService';
+import { networkService } from '@/services/network';
 
 export const useNetworkData = (period: string) => {
   const [data, setData] = useState<NetworkDataPoint[]>([]);
@@ -12,7 +11,6 @@ export const useNetworkData = (period: string) => {
     networkService.status
   );
 
-  // Calculate max data points based on time period
   const getMaxDataPoints = useCallback(() => {
     switch (period) {
       case "1h": return 60;  // 1 point per minute
@@ -23,22 +21,18 @@ export const useNetworkData = (period: string) => {
     }
   }, [period]);
 
-  // Process network events into time-aggregated data points
   const processNetworkEvent = useCallback((event: NetworkEvent, dataPoints: NetworkDataPoint[]) => {
     try {
       const maxDataPoints = getMaxDataPoints();
       
-      // Create timestamp based on the period granularity
       let timeLabel = new Date().toLocaleTimeString();
       if (period === "7d" || period === "30d") {
         timeLabel = new Date().toLocaleDateString();
       }
       
-      // Find if there's an existing data point for this time slot
       const existingPointIndex = dataPoints.findIndex(point => point.name === timeLabel);
       
       if (existingPointIndex >= 0) {
-        // Update existing data point
         const updatedDataPoints = [...dataPoints];
         const point = updatedDataPoints[existingPointIndex];
         
@@ -54,7 +48,6 @@ export const useNetworkData = (period: string) => {
         
         setData(updatedDataPoints);
       } else {
-        // Add new data point
         const newDataPoint = {
           name: timeLabel,
           "Normal Traffic": event.classification === "benign" ? 1 : 0,
@@ -64,7 +57,6 @@ export const useNetworkData = (period: string) => {
         
         const newDataPoints = [...dataPoints, newDataPoint];
         
-        // Trim data points if exceeding max
         if (newDataPoints.length > maxDataPoints) {
           newDataPoints.splice(0, newDataPoints.length - maxDataPoints);
         }
@@ -72,7 +64,6 @@ export const useNetworkData = (period: string) => {
         setData(newDataPoints);
       }
       
-      // Update connection status based on network service status
       if (networkService.status !== connectionStatus) {
         setConnectionStatus(networkService.status);
       }
@@ -89,20 +80,16 @@ export const useNetworkData = (period: string) => {
   }, [period, connectionStatus, isConnected, getMaxDataPoints]);
 
   useEffect(() => {
-    // Start with empty data when period changes
     setData([]);
     
-    // Create a closure for the current data state
     let dataPoints: NetworkDataPoint[] = [];
     
     const handleNetworkEvent = (event: NetworkEvent) => {
       processNetworkEvent(event, dataPoints);
     };
 
-    // Subscribe to network events
     const unsubscribe = networkService.subscribe(handleNetworkEvent);
     
-    // Check connection status every 5 seconds
     const statusInterval = setInterval(() => {
       const currentStatus = networkService.status;
       if (currentStatus !== connectionStatus) {
