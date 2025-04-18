@@ -116,7 +116,7 @@ class NetworkService {
         };
         
         this.notifyHandlers(mockEvent);
-      }, 1500 / activityMultiplier); // Here we're correctly using the activityMultiplier variable
+      }, 1500 / activityMultiplier); // Using activityMultiplier to adjust frequency
       
       // Store the interval ID for cleanup
       this.reconnectTimer = interval;
