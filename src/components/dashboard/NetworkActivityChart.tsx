@@ -1,48 +1,30 @@
 
-import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Card } from "@/components/ui/card";
-
-// Mock data generation
-const generateChartData = (period: string) => {
-  // Different data sets based on the time period
-  const periods: Record<string, number> = {
-    "1h": 12,
-    "24h": 24,
-    "7d": 7,
-    "30d": 30
-  };
-
-  const dataPoints = periods[period] || 24;
-  const multiplier = period === "1h" ? 5 : period === "7d" ? 0.25 : period === "30d" ? 0.1 : 1;
-  
-  return Array.from({ length: dataPoints }, (_, i) => {
-    const baseTraffic = 100 + Math.random() * 50;
-    const baseMalicious = Math.max(5 + Math.random() * 20, 0);
-    const baseBlocked = Math.max(baseMalicious * 0.8, 0);
-    
-    return {
-      name: period === "1h" ? `${i * 5}m` : 
-            period === "7d" ? `Day ${i + 1}` : 
-            period === "30d" ? `Day ${i + 1}` : 
-            `${i}h`,
-      "Normal Traffic": Math.round(baseTraffic * multiplier),
-      "Suspicious Activity": Math.round((baseMalicious + (i % 3 === 0 ? 15 : 0)) * multiplier),
-      "Blocked Threats": Math.round(baseBlocked * multiplier),
-    };
-  });
-};
+import { useNetworkData } from "@/hooks/useNetworkData";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface NetworkActivityChartProps {
   period: string;
 }
 
 export function NetworkActivityChart({ period }: NetworkActivityChartProps) {
-  const [data, setData] = useState(generateChartData(period));
+  const { data, error } = useNetworkData(period);
 
-  useEffect(() => {
-    setData(generateChartData(period));
-  }, [period]);
+  if (error) {
+    return (
+      <div className="h-[300px] w-full flex items-center justify-center text-destructive">
+        {error}
+      </div>
+    );
+  }
+
+  if (!data.length) {
+    return (
+      <div className="h-[300px] w-full">
+        <Skeleton className="w-full h-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-[300px] w-full">
