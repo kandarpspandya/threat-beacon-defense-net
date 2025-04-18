@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -13,14 +14,14 @@ export const useNetworkData = (period: string) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initialize WebSocket connection to shodan stream
-    const ws = new WebSocket('wss://stream.shodan.io/shodan/ports/23,80,443,8080?key=YOUR_API_KEY');
+    // Use the provided Shodan API key
+    const ws = new WebSocket(`wss://stream.shodan.io/shodan/ports/23,80,443,8080?key=OIuEKPTuhZ06hzrLaoizV3w2KPlCRUcx`);
     
     let dataPoints: NetworkDataPoint[] = [];
     const maxDataPoints = period === "1h" ? 12 : period === "24h" ? 24 : period === "7d" ? 7 : 30;
     
     ws.onopen = () => {
-      toast.success("Connected to network stream");
+      toast.success("Connected to Shodan network stream");
     };
 
     ws.onmessage = (event) => {
@@ -45,12 +46,13 @@ export const useNetworkData = (period: string) => {
         setData([...dataPoints]);
       } catch (err) {
         console.error('Error processing network data:', err);
+        toast.error('Error processing Shodan stream data');
       }
     };
 
     ws.onerror = (error) => {
-      setError('Failed to connect to network stream');
-      toast.error('Network stream connection failed');
+      setError('Failed to connect to Shodan network stream');
+      toast.error('Shodan stream connection failed');
     };
 
     return () => {
