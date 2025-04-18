@@ -1,64 +1,54 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-
-interface NetworkDataPoint {
-  name: string;
-  "Normal Traffic": number;
-  "Suspicious Activity": number;
-  "Blocked Threats": number;
-}
+import { NetworkDataPoint, NetworkEvent } from '@/types/network';
+import { networkService } from '@/services/networkService';
 
 export const useNetworkData = (period: string) => {
   const [data, setData] = useState<NetworkDataPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Use the provided Shodan API key
-    const ws = new WebSocket(`wss://stream.shodan.io/shodan/ports/23,80,443,8080?key=OIuEKPTuhZ06hzrLaoizV3w2KPlCRUcx`);
-    
     let dataPoints: NetworkDataPoint[] = [];
     const maxDataPoints = period === "1h" ? 12 : period === "24h" ? 24 : period === "7d" ? 7 : 30;
     
-    ws.onopen = () => {
-      toast.success("Connected to Shodan network stream");
-    };
-
-    ws.onmessage = (event) => {
+    const handleNetworkEvent = (event: NetworkEvent) => {
       try {
-        const networkEvent = JSON.parse(event.data);
-        
-        // Process incoming data
         const newDataPoint = {
           name: new Date().toLocaleTimeString(),
-          "Normal Traffic": Math.round(Math.random() * 100), // We'll use port 80,443 traffic
-          "Suspicious Activity": networkEvent.ports?.length || 0, // Count of open ports
-          "Blocked Threats": Math.round(Math.random() * 20), // Simulated blocks for demo
+          "Normal Traffic": event.classification === "benign" ? 1 : 0,
+          "Suspicious Activity": event.tags?.length || 0,
+          "Blocked Threats": event.classification === "malicious" ? 1 : 0,
         };
 
         dataPoints = [...dataPoints, newDataPoint];
         
-        // Keep only the latest N points based on the selected period
         if (dataPoints.length > maxDataPoints) {
           dataPoints = dataPoints.slice(-maxDataPoints);
         }
         
         setData([...dataPoints]);
+        
+        if (!isConnected) {
+          setIsConnected(true);
+          toast.success("Connected to network stream");
+        }
       } catch (err) {
         console.error('Error processing network data:', err);
-        toast.error('Error processing Shodan stream data');
+        toast.error('Error processing network data');
+        setError('Error processing network data');
       }
     };
 
-    ws.onerror = (error) => {
-      setError('Failed to connect to Shodan network stream');
-      toast.error('Shodan stream connection failed');
-    };
+    const unsubscribe = networkService.subscribe(handleNetworkEvent);
+    networkService.connect();
 
     return () => {
-      ws.close();
+      unsubscribe();
+      networkService.disconnect();
     };
-  }, [period]);
+  }, [period, isConnected]);
 
-  return { data, error };
+  return { data, error, isConnected };
 };

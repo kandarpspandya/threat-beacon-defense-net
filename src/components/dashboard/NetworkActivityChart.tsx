@@ -2,19 +2,26 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useNetworkData } from "@/hooks/useNetworkData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface NetworkActivityChartProps {
   period: string;
 }
 
 export function NetworkActivityChart({ period }: NetworkActivityChartProps) {
-  const { data, error } = useNetworkData(period);
+  const { data, error, isConnected } = useNetworkData(period);
 
   if (error) {
     return (
-      <div className="h-[300px] w-full flex items-center justify-center text-destructive">
-        {error}
-      </div>
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {error}
+          {!isConnected && " - Attempting to reconnect..."}
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -65,7 +72,6 @@ export function NetworkActivityChart({ period }: NetworkActivityChartProps) {
             stroke="#2196F3" 
             fill="#2196F3" 
             fillOpacity={0.3}
-            activeDot={{ r: 6 }}
           />
           <Area 
             type="monotone" 
