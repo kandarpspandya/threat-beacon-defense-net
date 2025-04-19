@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { networkService } from "@/services/networkService";
+import { networkService } from "@/services/network";
 import { NetworkEvent, ProtocolData } from "@/types/network";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -144,7 +144,7 @@ export function ProtocolDistribution() {
   }
 
   return (
-    <div className="h-[250px] w-full">
+    <div className="h-[250px] w-full flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie

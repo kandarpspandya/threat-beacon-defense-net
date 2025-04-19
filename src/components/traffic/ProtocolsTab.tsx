@@ -11,8 +11,10 @@ export const ProtocolsTab = () => {
           Detailed breakdown by network protocol
         </CardDescription>
       </CardHeader>
-      <CardContent className="h-[500px]">
-        <ProtocolDistribution />
+      <CardContent className="h-[500px] flex items-center justify-center">
+        <div className="w-full max-w-2xl mx-auto">
+          <ProtocolDistribution />
+        </div>
       </CardContent>
     </Card>
   );

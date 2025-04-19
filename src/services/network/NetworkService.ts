@@ -14,9 +14,9 @@ class NetworkService extends BaseNetworkService {
       const { error } = await supabase
         .from('network_events')
         .insert({
-          ip_address: event.sourceIp,
+          ip_address: event.ip,
           ports: event.ports,
-          country: event.geo?.country,
+          country: event.location?.country_code,
           classification: event.classification,
           tags: event.tags
         });

@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useNetworkData } from "@/hooks/useNetworkData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Signal, Wifi, WifiOff } from "lucide-react";
+import { AlertTriangle, Signal, Wifi, WifiOff, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface NetworkActivityChartProps {
@@ -51,11 +51,15 @@ export function NetworkActivityChart({ period }: NetworkActivityChartProps) {
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle className="flex items-center">
-          Error {renderConnectionStatus()}
+          Connection Error {renderConnectionStatus()}
         </AlertTitle>
-        <AlertDescription>
-          {error}
-          {!isConnected && " - Attempting to reconnect..."}
+        <AlertDescription className="space-y-2">
+          <p>{error}</p>
+          <p className="text-xs">
+            <Info className="inline-block h-3 w-3 mr-1" />
+            Using simulated data. In production, you can enable system permissions to use TShark 
+            or other native packet capture tools for real network analysis.
+          </p>
         </AlertDescription>
       </Alert>
     );
