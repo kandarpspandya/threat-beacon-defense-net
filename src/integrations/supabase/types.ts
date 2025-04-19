@@ -9,7 +9,144 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      network_events: {
+        Row: {
+          classification: string | null
+          country: string | null
+          created_at: string
+          id: string
+          ip_address: string
+          ports: number[] | null
+          tags: string[] | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          classification?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip_address: string
+          ports?: number[] | null
+          tags?: string[] | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          classification?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string
+          ports?: number[] | null
+          tags?: string[] | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
+      threats: {
+        Row: {
+          created_at: string
+          destination_ip: string | null
+          details: Json | null
+          id: string
+          severity: string
+          source_ip: string
+          status: string
+          timestamp: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          destination_ip?: string | null
+          details?: Json | null
+          id?: string
+          severity: string
+          source_ip: string
+          status: string
+          timestamp: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          destination_ip?: string | null
+          details?: Json | null
+          id?: string
+          severity?: string
+          source_ip?: string
+          status?: string
+          timestamp?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      traffic_logs: {
+        Row: {
+          bytes: number
+          created_at: string
+          destination_ip: string
+          id: string
+          port: number
+          protocol: string
+          source_ip: string
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          bytes: number
+          created_at?: string
+          destination_ip: string
+          id?: string
+          port: number
+          protocol: string
+          source_ip: string
+          timestamp: string
+          user_id?: string | null
+        }
+        Update: {
+          bytes?: number
+          created_at?: string
+          destination_ip?: string
+          id?: string
+          port?: number
+          protocol?: string
+          source_ip?: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +155,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      threat_severity: "low" | "medium" | "high" | "critical"
+      threat_status: "monitoring" | "blocked" | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +271,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      threat_severity: ["low", "medium", "high", "critical"],
+      threat_status: ["monitoring", "blocked", "resolved"],
+    },
   },
 } as const

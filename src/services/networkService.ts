@@ -1,4 +1,3 @@
-
 import { NetworkEvent } from "@/types/network";
 import { toast } from "sonner";
 
@@ -92,19 +91,14 @@ class NetworkService {
       this.connectionStatus = 'connected';
       toast.info("Using simulated network data source");
       
-      // Clear any existing interval
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
       
-      // Simulate Greynoise data with more realistic patterns
       let interval = setInterval(() => {
-        // Network activity follows daily patterns
         const hour = new Date().getHours();
-        // More activity during work hours, less at night
-        const activityMultiplier = hour >= 9 && hour <= 17 ? 2.5 : 1; 
-        // Random chance for malicious events (higher during non-work hours)
+        const activityMultiplier = hour >= 9 && hour <= 17 ? 2.5 : 1;
         const maliciousChance = hour >= 22 || hour <= 5 ? 0.3 : 0.1;
         
         const mockEvent: NetworkEvent = {
@@ -116,9 +110,8 @@ class NetworkService {
         };
         
         this.notifyHandlers(mockEvent);
-      }, 1500 / activityMultiplier); // Using activityMultiplier to adjust frequency
+      }, 1500 / activityMultiplier);
       
-      // Store the interval ID for cleanup
       this.reconnectTimer = interval;
     } catch (err) {
       console.error("Error with data fallback:", err);
@@ -129,11 +122,10 @@ class NetworkService {
 
   private generateRandomPorts(): number[] {
     const commonPorts = [21, 22, 23, 25, 53, 80, 110, 143, 443, 587, 993, 995, 3306, 3389, 5900, 8080, 8443];
-    const numPorts = Math.floor(Math.random() * 3) + 1; // 1-3 ports
+    const numPorts = Math.floor(Math.random() * 3) + 1;
     const ports = [];
     
     for (let i = 0; i < numPorts; i++) {
-      // 75% chance of common port, 25% chance of random port
       if (Math.random() < 0.75) {
         ports.push(commonPorts[Math.floor(Math.random() * commonPorts.length)]);
       } else {
@@ -141,7 +133,7 @@ class NetworkService {
       }
     }
     
-    return [...new Set(ports)]; // Remove duplicates
+    return [...new Set(ports)];
   }
 
   private generateRandomTags(): string[] {
@@ -151,7 +143,7 @@ class NetworkService {
       'crawler', 'malware', 'ransomware', 'trojan', 'backdoor', 'exploit'
     ];
     
-    const numTags = Math.floor(Math.random() * 3); // 0-2 tags
+    const numTags = Math.floor(Math.random() * 3);
     if (numTags === 0) return [];
     
     const tags = [];
@@ -159,26 +151,22 @@ class NetworkService {
       tags.push(allTags[Math.floor(Math.random() * allTags.length)]);
     }
     
-    return [...new Set(tags)]; // Remove duplicates
+    return [...new Set(tags)];
   }
 
   private normalizeEvent(event: any): NetworkEvent {
-    // Extract more relevant data from Shodan responses
     const tags = [];
     
-    // Add protocol-based tags
     if (event.data && event.data.http) tags.push('http');
     if (event.port === 443) tags.push('https');
     if (event.port === 22) tags.push('ssh');
     if (event.port === 21) tags.push('ftp');
     if (event.port === 23) tags.push('telnet');
     
-    // Add geographic data if available
     if (event.location && event.location.country_code) {
       tags.push(`geo:${event.location.country_code.toLowerCase()}`);
     }
     
-    // Classify the traffic based on potential threats
     let classification = "benign";
     if (event.vulns && Object.keys(event.vulns).length > 0) {
       classification = "malicious";
@@ -189,14 +177,13 @@ class NetworkService {
       classification = "malicious";
     }
     
-    // Extract ports
     const ports = event.ports || [event.port] || [];
     
     return {
       timestamp: event.timestamp || new Date().toISOString(),
       ip: event.ip_str || event.ip || "unknown",
       ports: ports.filter(Boolean),
-      tags: [...new Set([...tags, ...(event.tags || [])])], // Combine and deduplicate tags
+      tags: [...new Set([...tags, ...(event.tags || [])])],
       classification
     };
   }
@@ -210,7 +197,6 @@ class NetworkService {
   subscribe(handler: (event: NetworkEvent) => void) {
     this.dataHandlers.push(handler);
     
-    // Auto-connect when the first subscriber is added
     if (this.dataHandlers.length === 1 && this.connectionStatus === 'disconnected') {
       this.connect();
     }
@@ -218,7 +204,6 @@ class NetworkService {
     return () => {
       this.dataHandlers = this.dataHandlers.filter(h => h !== handler);
       
-      // Auto-disconnect when the last subscriber is removed
       if (this.dataHandlers.length === 0) {
         this.disconnect();
       }
@@ -246,5 +231,4 @@ class NetworkService {
   }
 }
 
-// Use your Shodan API key from before
 export const networkService = new NetworkService("OIuEKPTuhZ06hzrLaoizV3w2KPlCRUcx");

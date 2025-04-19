@@ -21,6 +21,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
+import { UserIcon } from "@/components/ui/user";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -29,7 +30,6 @@ const DashboardLayout = () => {
   const { user, isLoading, signOut } = useAuth();
   
   useEffect(() => {
-    // Show a welcome toast when the dashboard loads
     if (location.pathname === "/" && user) {
       setTimeout(() => {
         toast.success(`Welcome to SentinelNet, ${user.user_metadata?.name || 'User'}`, {
@@ -39,7 +39,6 @@ const DashboardLayout = () => {
     }
   }, [location.pathname, user]);
 
-  // Show loading indicator while auth state is being determined
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-sentinel-dark">
@@ -48,7 +47,6 @@ const DashboardLayout = () => {
     );
   }
 
-  // Check authentication
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -83,7 +81,6 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
       <div
         className={cn(
           "fixed inset-y-0 z-50 flex w-72 flex-col border-r transition-all duration-300 bg-sentinel-dark border-sentinel-light/10",
@@ -106,11 +103,10 @@ const DashboardLayout = () => {
         </div>
         <div className="flex-1 overflow-auto p-4">
           <nav className="flex flex-col space-y-6">
-            {/* User info */}
             <div className="px-3 py-2 text-sm font-medium text-white/70">
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-full bg-sentinel-accent/20 flex items-center justify-center">
-                  <User className="h-4 w-4 text-sentinel-accent" />
+                  <UserIcon className="h-4 w-4 text-sentinel-accent" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-medium text-white">{user.user_metadata?.name || 'User'}</span>
@@ -119,7 +115,6 @@ const DashboardLayout = () => {
               </div>
             </div>
 
-            {/* Main Navigation */}
             <div className="space-y-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
                 Main Navigation
@@ -141,7 +136,6 @@ const DashboardLayout = () => {
               ))}
             </div>
 
-            {/* Detection Methods */}
             <Collapsible className="space-y-1">
               <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white rounded-md">
                 <div className="flex items-center">
@@ -185,7 +179,6 @@ const DashboardLayout = () => {
               </CollapsibleContent>
             </Collapsible>
             
-            {/* Response Tools */}
             <Collapsible className="space-y-1">
               <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white rounded-md">
                 <div className="flex items-center">
@@ -229,7 +222,6 @@ const DashboardLayout = () => {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* IDPS Tools */}
             <Collapsible className="space-y-1">
               <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-white/70 hover:bg-sentinel-light/10 hover:text-white rounded-md">
                 <div className="flex items-center">
@@ -273,7 +265,6 @@ const DashboardLayout = () => {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Documentation */}
             <div className="space-y-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
                 Documentation
@@ -300,12 +291,10 @@ const DashboardLayout = () => {
         </div>
       </div>
 
-      {/* Main content */}
       <div className={cn(
         "flex flex-col flex-1 overflow-x-hidden transition-all duration-300",
         sidebarOpen ? "lg:pl-72" : "lg:pl-0"
       )}>
-        {/* Top navigation bar */}
         <header className="sticky top-0 z-40 flex h-16 items-center gap-x-4 border-b bg-background px-4 shadow-sm border-sentinel-light/10">
           <Button
             variant="ghost"
@@ -316,14 +305,12 @@ const DashboardLayout = () => {
             <Menu className="h-5 w-5" />
           </Button>
           
-          {/* Current page title */}
           <div className="flex-1">
             <h1 className="text-lg font-semibold">
               {mainNavigation.find((item) => item.current)?.name || "Dashboard"}
             </h1>
           </div>
           
-          {/* Status indicators */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-sentinel-success animate-pulse"></span>
@@ -336,7 +323,6 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-background to-sentinel-dark/50">
           <Outlet />
         </main>

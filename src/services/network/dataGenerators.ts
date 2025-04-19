@@ -1,3 +1,23 @@
+import { NetworkEvent } from "@/types/network";
+
+export const generateGreyNoiseData = (activityMultiplier: number = 1) => {
+  return {
+    ip: `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+    classification: Math.random() < 0.2 ? "malicious" : "benign",
+    tags: generateRandomTags(),
+    ports: generateRandomPorts()
+  };
+};
+
+export const generateNetworkEvent = (): NetworkEvent => {
+  return {
+    timestamp: new Date().toISOString(),
+    ip: `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+    ports: generateRandomPorts(),
+    tags: generateRandomTags(),
+    classification: Math.random() < 0.2 ? "malicious" : "benign"
+  };
+};
 
 export function generateRandomPorts(): number[] {
   const commonPorts = [21, 22, 23, 25, 53, 80, 110, 143, 443, 587, 993, 995, 3306, 3389, 5900, 8080, 8443];

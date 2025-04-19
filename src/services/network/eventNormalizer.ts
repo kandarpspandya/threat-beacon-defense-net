@@ -1,7 +1,6 @@
-
 import { NetworkEvent } from "@/types/network";
 
-export function normalizeEvent(event: any): NetworkEvent {
+export const eventNormalizer = (event: any): NetworkEvent => {
   // Extract more relevant data from Shodan responses
   const tags = [];
   
@@ -34,8 +33,8 @@ export function normalizeEvent(event: any): NetworkEvent {
   return {
     timestamp: event.timestamp || new Date().toISOString(),
     ip: event.ip_str || event.ip || "unknown",
-    ports: ports.filter(Boolean),
-    tags: [...new Set([...tags, ...(event.tags || [])])], // Combine and deduplicate tags
-    classification
+    ports: (event.ports || [event.port || []]).filter(Boolean),
+    tags: [...new Set([...(event.tags || [])])],
+    classification: event.classification || "benign"
   };
-}
+};
