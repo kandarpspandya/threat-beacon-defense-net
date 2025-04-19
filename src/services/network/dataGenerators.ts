@@ -1,3 +1,4 @@
+
 import { NetworkEvent } from "@/types/network";
 
 export const generateGreyNoiseData = (activityMultiplier: number = 1) => {
