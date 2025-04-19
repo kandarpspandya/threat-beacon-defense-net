@@ -1,5 +1,10 @@
 import { NetworkEvent } from "@/types/network";
 import { toast } from "sonner";
+import { eventNormalizer } from "./network/eventNormalizer";
+import { 
+  generateGreyNoiseData, 
+  generateNetworkEvent 
+} from "./network/dataGenerators";
 
 class NetworkService {
   private shodanWs: WebSocket | null = null;
@@ -96,11 +101,12 @@ class NetworkService {
         this.reconnectTimer = null;
       }
       
+      // Define activityMultiplier locally within the method
+      const hour = new Date().getHours();
+      const activityMultiplier = hour >= 9 && hour <= 17 ? 2.5 : 1;
+      const maliciousChance = hour >= 22 || hour <= 5 ? 0.3 : 0.1;
+      
       let interval = setInterval(() => {
-        const hour = new Date().getHours();
-        const activityMultiplier = hour >= 9 && hour <= 17 ? 2.5 : 1;
-        const maliciousChance = hour >= 22 || hour <= 5 ? 0.3 : 0.1;
-        
         const mockEvent: NetworkEvent = {
           timestamp: new Date().toISOString(),
           ip: `${Math.floor(Math.random() * 223) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
