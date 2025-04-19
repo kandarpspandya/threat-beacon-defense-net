@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +19,6 @@ const Dashboard = () => {
     networkService.status
   );
 
-  // Mock data - in a real app, this would come from the API
   const stats = {
     activeThreats: 12,
     blockedAttacks: 487,
@@ -29,8 +27,7 @@ const Dashboard = () => {
     detectionRate: 87,
     falsePositiveRate: 3,
   };
-  
-  // Recent threats mock data
+
   const recentThreats = [
     {
       id: 1,
@@ -70,7 +67,6 @@ const Dashboard = () => {
     },
   ];
 
-  // Update network status periodically
   useEffect(() => {
     const statusInterval = setInterval(() => {
       setNetworkStatus(networkService.status);
@@ -97,7 +93,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Overview Stats */}
       <DashboardStats 
         activeThreats={stats.activeThreats}
         blockedAttacks={stats.blockedAttacks}
@@ -105,7 +100,6 @@ const Dashboard = () => {
         systemUptime={stats.systemUptime}
       />
 
-      {/* Main Dashboard Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid grid-cols-4 md:w-[400px] bg-background/50">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -115,7 +109,6 @@ const Dashboard = () => {
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
-          {/* Main Chart and Period Selector */}
           <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
@@ -159,9 +152,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Grid Layout for Secondary Stats and Charts */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Threat Detection Panel */}
             <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm md:col-span-2 lg:col-span-3">
               <CardHeader>
                 <CardTitle>Threat Detection</CardTitle>
@@ -178,7 +169,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Protocol Distribution */}
             <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm md:col-span-2 lg:col-span-2">
               <CardHeader>
                 <CardTitle>Protocol Distribution</CardTitle>
@@ -191,7 +181,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Detection Performance */}
             <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm md:col-span-2 lg:col-span-2">
               <CardHeader>
                 <CardTitle>Detection Performance</CardTitle>
@@ -225,7 +214,6 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* Additional Insights */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="border-sentinel-light/10 bg-card/50 backdrop-blur-sm">
               <CardHeader>

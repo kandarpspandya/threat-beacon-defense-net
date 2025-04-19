@@ -1,3 +1,3 @@
 
 export { networkService } from './NetworkService';
-export { NetworkServiceInterface } from './types';
+export type { NetworkServiceInterface } from './types';

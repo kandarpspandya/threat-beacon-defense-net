@@ -1,12 +1,12 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, Mail, Lock, AlertCircle, Eye, EyeOff, User, ArrowRight } from "lucide-react";
+import { Shield, Mail, Lock, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -18,6 +18,7 @@ const Login = () => {
   const [particlesVisible, setParticlesVisible] = useState(false);
   const [formPosition, setFormPosition] = useState({ x: 0, y: 0 });
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   
   // Refs for animated elements
   const shieldRef = useRef<HTMLDivElement>(null);
@@ -86,15 +87,11 @@ const Login = () => {
     }
 
     try {
-      // In a real app, we would call an authentication API here
-      // Mock authentication for demo - simulating API call
-      setTimeout(() => {
-        // Check if this user is registered (in a real app, this would be handled by the backend)
-        const registeredUsers = JSON.parse(localStorage.getItem("registered-users") || "[]");
-        const userExists = registeredUsers.some((user: any) => user.email === email);
-        
-        if (!userExists) {
-          setError("Account not found. Please register first.");
+      const { success, error } = await signIn(email, password);
+      
+      if (!success) {
+        setError(error || "Authentication failed");
+        if (error?.includes("Account not found")) {
           toast.error("Account not found", {
             description: "Please register to create a new account",
             action: {
@@ -102,40 +99,36 @@ const Login = () => {
               onClick: () => navigate("/register")
             }
           });
-          if (shieldRef.current) {
-            shieldRef.current.classList.remove("animate-pulse");
-          }
-          setIsLoading(false);
-          return;
         }
-        
-        // Success path - set auth state and redirect
-        localStorage.setItem("sentinel-auth", "true");
-        
-        // Create explosion effect before redirect
         if (shieldRef.current) {
-          shieldRef.current.classList.add("scale-150", "opacity-0");
-          setTimeout(() => {
-            toast.success("Login successful", {
-              description: "Welcome to SentinelNet"
-            });
-            navigate("/");
-          }, 600);
-        } else {
+          shieldRef.current.classList.remove("animate-pulse");
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Success path - redirect after animation
+      if (shieldRef.current) {
+        shieldRef.current.classList.add("scale-150", "opacity-0");
+        setTimeout(() => {
           toast.success("Login successful", {
             description: "Welcome to SentinelNet"
           });
           navigate("/");
-        }
-        
-        setIsLoading(false);
-      }, 1500);
+        }, 600);
+      } else {
+        toast.success("Login successful", {
+          description: "Welcome to SentinelNet"
+        });
+        navigate("/");
+      }
     } catch (err) {
       console.error("Login error:", err);
       setError("Authentication failed. Please check your credentials.");
       if (shieldRef.current) {
         shieldRef.current.classList.remove("animate-pulse");
       }
+    } finally {
       setIsLoading(false);
     }
   };

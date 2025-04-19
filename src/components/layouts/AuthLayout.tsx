@@ -2,14 +2,11 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-// Mock authentication check - this would be replaced with real auth logic
-const isAuthenticated = () => {
-  return localStorage.getItem("sentinel-auth") === "true";
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 const AuthLayout = () => {
   const [particles, setParticles] = useState<Array<{id: number, size: number, x: number, y: number, speed: number, blinking: boolean}>>([]);
+  const { user, isLoading } = useAuth();
   
   useEffect(() => {
     // Add a cybersecurity background effect to auth pages
@@ -27,7 +24,7 @@ const AuthLayout = () => {
     setParticles(newParticles);
     
     // Display a toast message for unauthenticated users
-    if (!isAuthenticated()) {
+    if (!isLoading && !user) {
       toast.info("Please sign in to access SentinelNet", {
         duration: 4000,
       });
@@ -36,10 +33,19 @@ const AuthLayout = () => {
     return () => {
       document.body.classList.remove("grid-pattern");
     };
-  }, []);
+  }, [isLoading, user]);
+
+  // Show loading indicator while auth state is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sentinel-dark">
+        <div className="animate-pulse text-sentinel-accent">Loading...</div>
+      </div>
+    );
+  }
 
   // Redirect to dashboard if already authenticated
-  if (isAuthenticated()) {
+  if (user) {
     return <Navigate to="/" replace />;
   }
 

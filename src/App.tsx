@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
@@ -47,48 +48,50 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="dark" storageKey="sentinelnet-theme">
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Auth Routes */}
-            <Route element={<AuthLayout />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-            </Route>
-            
-            {/* App Routes */}
-            <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/traffic" element={<TrafficAnalysis />} />
-              <Route path="/settings" element={<Settings />} />
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Auth Routes */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+              </Route>
               
-              {/* Detection Methods */}
-              <Route path="/signature-detection" element={<SignatureDetection />} />
-              <Route path="/anomaly-detection" element={<AnomalyDetection />} />
-              <Route path="/protocol-analysis" element={<ProtocolAnalysis />} />
+              {/* App Routes */}
+              <Route element={<DashboardLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/traffic" element={<TrafficAnalysis />} />
+                <Route path="/settings" element={<Settings />} />
+                
+                {/* Detection Methods */}
+                <Route path="/signature-detection" element={<SignatureDetection />} />
+                <Route path="/anomaly-detection" element={<AnomalyDetection />} />
+                <Route path="/protocol-analysis" element={<ProtocolAnalysis />} />
+                
+                {/* Response Tools */}
+                <Route path="/response/blocking" element={<TrafficBlocking />} />
+                <Route path="/response/alerting" element={<AlertManagement />} />
+                <Route path="/response/logging" element={<Logging />} />
+                <Route path="/response/reporting" element={<Reporting />} />
+                
+                {/* IDPS Tools */}
+                <Route path="/tools/suricata" element={<SuricataTool />} />
+                <Route path="/tools/security-onion" element={<SecurityOnion />} />
+                <Route path="/tools/zap" element={<OwaspZap />} />
+                <Route path="/tools/requestshield" element={<RequestShield />} />
+                
+                {/* Documentation */}
+                <Route path="/documentation" element={<Documentation />} />
+              </Route>
               
-              {/* Response Tools */}
-              <Route path="/response/blocking" element={<TrafficBlocking />} />
-              <Route path="/response/alerting" element={<AlertManagement />} />
-              <Route path="/response/logging" element={<Logging />} />
-              <Route path="/response/reporting" element={<Reporting />} />
-              
-              {/* IDPS Tools */}
-              <Route path="/tools/suricata" element={<SuricataTool />} />
-              <Route path="/tools/security-onion" element={<SecurityOnion />} />
-              <Route path="/tools/zap" element={<OwaspZap />} />
-              <Route path="/tools/requestshield" element={<RequestShield />} />
-              
-              {/* Documentation */}
-              <Route path="/documentation" element={<Documentation />} />
-            </Route>
-            
-            {/* Catch All */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Catch All */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

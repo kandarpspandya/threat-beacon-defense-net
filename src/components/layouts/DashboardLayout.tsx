@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Outlet, Navigate, Link, useLocation } from "react-router-dom";
 import { 
@@ -21,30 +20,36 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
-// Mock authentication check - this would be replaced with real auth logic
-const isAuthenticated = () => {
-  return localStorage.getItem("sentinel-auth") === "true";
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeToolTip, setActiveToolTip] = useState("");
   const location = useLocation();
+  const { user, isLoading, signOut } = useAuth();
   
   useEffect(() => {
     // Show a welcome toast when the dashboard loads
-    if (location.pathname === "/") {
+    if (location.pathname === "/" && user) {
       setTimeout(() => {
-        toast.success("Welcome to SentinelNet", {
+        toast.success(`Welcome to SentinelNet, ${user.user_metadata?.name || 'User'}`, {
           description: "Your network is now being monitored in real-time",
         });
       }, 1000);
     }
-  }, [location.pathname]);
+  }, [location.pathname, user]);
+
+  // Show loading indicator while auth state is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sentinel-dark">
+        <div className="animate-pulse text-sentinel-accent">Loading...</div>
+      </div>
+    );
+  }
 
   // Check authentication
-  if (!isAuthenticated()) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -101,6 +106,19 @@ const DashboardLayout = () => {
         </div>
         <div className="flex-1 overflow-auto p-4">
           <nav className="flex flex-col space-y-6">
+            {/* User info */}
+            <div className="px-3 py-2 text-sm font-medium text-white/70">
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-full bg-sentinel-accent/20 flex items-center justify-center">
+                  <User className="h-4 w-4 text-sentinel-accent" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-white">{user.user_metadata?.name || 'User'}</span>
+                  <span className="text-xs text-white/50">{user.email}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Main Navigation */}
             <div className="space-y-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
@@ -274,10 +292,7 @@ const DashboardLayout = () => {
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white/70 hover:text-white hover:bg-sentinel-light/10"
-            onClick={() => {
-              localStorage.removeItem("sentinel-auth");
-              window.location.href = "/login";
-            }}
+            onClick={signOut}
           >
             <LogOut className="mr-3 h-5 w-5" />
             Sign out

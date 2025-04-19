@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Shield, Mail, Lock, User, AlertCircle, Eye, EyeOff, ArrowLeft } from "lucide-react";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -20,6 +20,7 @@ const Register = () => {
   const [showAnimation, setShowAnimation] = useState(false);
   const [formPosition, setFormPosition] = useState({ x: 0, y: 0 });
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   
   // Ref for animated shield
   const shieldRef = useRef<HTMLDivElement>(null);
@@ -108,15 +109,11 @@ const Register = () => {
     }
 
     try {
-      // In a real app, we would call a registration API here
-      // For demo purposes, we'll just store user info in localStorage
-      setTimeout(() => {
-        // Check if user already exists
-        const registeredUsers = JSON.parse(localStorage.getItem("registered-users") || "[]");
-        const userExists = registeredUsers.some((user: any) => user.email === email);
-        
-        if (userExists) {
-          setError("This email is already registered");
+      const { success, error } = await signUp(email, password, name);
+      
+      if (!success) {
+        setError(error || "Registration failed");
+        if (error?.includes("already registered")) {
           toast.error("Account already exists", {
             description: "Please sign in instead",
             action: {
@@ -124,44 +121,36 @@ const Register = () => {
               onClick: () => navigate("/login")
             }
           });
-          if (shieldRef.current) {
-            shieldRef.current.classList.remove("animate-pulse");
-          }
-          setIsLoading(false);
-          return;
         }
-        
-        // Add new user to registered users
-        registeredUsers.push({ name, email, password });
-        localStorage.setItem("registered-users", JSON.stringify(registeredUsers));
-        
-        // Set auth state
-        localStorage.setItem("sentinel-auth", "true");
-        
-        // Create success animation before redirect
         if (shieldRef.current) {
-          shieldRef.current.classList.add("scale-150", "opacity-0");
-          setTimeout(() => {
-            toast.success("Registration successful", {
-              description: `Welcome to SentinelNet, ${name}!`
-            });
-            navigate("/");
-          }, 600);
-        } else {
+          shieldRef.current.classList.remove("animate-pulse");
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Success path
+      if (shieldRef.current) {
+        shieldRef.current.classList.add("scale-150", "opacity-0");
+        setTimeout(() => {
           toast.success("Registration successful", {
             description: `Welcome to SentinelNet, ${name}!`
           });
           navigate("/");
-        }
-        
-        setIsLoading(false);
-      }, 1500);
+        }, 600);
+      } else {
+        toast.success("Registration successful", {
+          description: `Welcome to SentinelNet, ${name}!`
+        });
+        navigate("/");
+      }
     } catch (err) {
       console.error("Registration error:", err);
       setError("Registration failed. Please try again.");
       if (shieldRef.current) {
         shieldRef.current.classList.remove("animate-pulse");
       }
+    } finally {
       setIsLoading(false);
     }
   };

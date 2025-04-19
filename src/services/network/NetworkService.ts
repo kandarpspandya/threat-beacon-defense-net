@@ -1,179 +1,177 @@
 
 import { NetworkEvent } from "@/types/network";
-import { toast } from "sonner";
 import { NetworkServiceInterface } from "./types";
-import { generateRandomPorts, generateRandomTags } from "./dataGenerators";
-import { normalizeEvent } from "./eventNormalizer";
+import { eventNormalizer } from "./eventNormalizer";
+import { generateGreyNoiseData, generateNetworkEvent } from "./dataGenerators";
 
 class NetworkService implements NetworkServiceInterface {
-  private shodanWs: WebSocket | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 2000;
-  private reconnectTimer: NodeJS.Timeout | null = null;
-  private dataHandlers: ((event: NetworkEvent) => void)[] = [];
-  private connectionStatus: 'connected' | 'connecting' | 'disconnected' | 'error' = 'disconnected';
-
-  constructor(private apiKey: string) {}
-
-  get status(): 'connected' | 'connecting' | 'disconnected' | 'error' {
-    return this.connectionStatus;
+  private handlers: ((event: NetworkEvent) => void)[] = [];
+  private eventInterval: number | null = null;
+  private reconnectTimeout: number | null = null;
+  private _status: 'connected' | 'connecting' | 'disconnected' | 'error' = 'disconnected';
+  private eventRate = 1000; // 1 event per second by default
+  private simulationActive = false;
+  
+  constructor() {
+    // Initialize with disconnected status
+    this._status = 'disconnected';
   }
-
-  connect() {
-    if (this.connectionStatus === 'connecting' || this.connectionStatus === 'connected') {
+  
+  get status(): 'connected' | 'connecting' | 'disconnected' | 'error' {
+    return this._status;
+  }
+  
+  /**
+   * Connect to the network monitoring service
+   */
+  connect(): void {
+    if (this._status === 'connected' || this._status === 'connecting') {
       return;
     }
-
-    this.connectionStatus = 'connecting';
     
-    try {
-      console.log("Attempting to connect to Shodan stream...");
-      this.shodanWs = new WebSocket(
-        `wss://stream.shodan.io/shodan/ports/23,80,443,8080?key=${this.apiKey}`
-      );
-
-      this.shodanWs.onopen = () => {
-        console.log("Successfully connected to Shodan stream");
-        this.connectionStatus = 'connected';
-        this.reconnectAttempts = 0;
-        toast.success("Connected to Shodan network stream");
-      };
-
-      this.shodanWs.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.notifyHandlers(normalizeEvent(data));
-        } catch (err) {
-          console.error("Error processing Shodan data:", err);
-        }
-      };
-
-      this.shodanWs.onclose = (event) => {
-        console.log(`WebSocket closed with code: ${event.code}, reason: ${event.reason}`);
-        this.connectionStatus = 'disconnected';
-        
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectTimer = setTimeout(() => this.reconnect(), this.getReconnectDelay());
-        } else {
-          toast.error("Failed to connect to Shodan after multiple attempts, using fallback data");
-          this.fallbackToGreynoise();
-        }
-      };
-
-      this.shodanWs.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        this.connectionStatus = 'error';
-        toast.error("Error connecting to Shodan network stream");
-        
-        if (this.shodanWs) {
-          this.shodanWs.close();
-        }
-        
-        this.fallbackToGreynoise();
-      };
-
-    } catch (err) {
-      console.error("Error establishing WebSocket connection:", err);
-      this.connectionStatus = 'error';
-      toast.error("Failed to connect to Shodan network stream");
-      this.fallbackToGreynoise();
+    this._status = 'connecting';
+    
+    // Simulate connection process
+    setTimeout(() => {
+      this._status = 'connected';
+      this.startEventSimulation();
+    }, 2000);
+  }
+  
+  /**
+   * Disconnect from the network monitoring service
+   */
+  disconnect(): void {
+    this._status = 'disconnected';
+    this.stopEventSimulation();
+    
+    // Clear any pending reconnect attempts
+    if (this.reconnectTimeout !== null) {
+      window.clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
   }
-
-  private getReconnectDelay(): number {
-    // Exponential backoff with jitter
-    const baseDelay = this.reconnectDelay;
-    const exponentialDelay = baseDelay * Math.pow(1.5, this.reconnectAttempts);
-    const jitter = Math.random() * 0.3 * exponentialDelay;
-    return Math.min(exponentialDelay + jitter, 30000); // Cap at 30 seconds
-  }
-
-  private async fallbackToGreynoise() {
-    try {
-      console.log("Falling back to simulated network data...");
-      this.connectionStatus = 'connected';
-      toast.info("Using simulated network data source");
-      
-      // Clear any existing interval
-      if (this.reconnectTimer) {
-        clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = null;
-      }
-      
-      // Simulate Greynoise data with more realistic patterns
-      let interval = setInterval(() => {
-        // Network activity follows daily patterns
-        const hour = new Date().getHours();
-        // More activity during work hours, less at night
-        const activityMultiplier = hour >= 9 && hour <= 17 ? 2.5 : 1; 
-        // Random chance for malicious events (higher during non-work hours)
-        const maliciousChance = hour >= 22 || hour <= 5 ? 0.3 : 0.1;
-        
-        const mockEvent: NetworkEvent = {
-          timestamp: new Date().toISOString(),
-          ip: `${Math.floor(Math.random() * 223) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-          ports: generateRandomPorts(),
-          tags: generateRandomTags(),
-          classification: Math.random() < maliciousChance ? "malicious" : "benign"
-        };
-        
-        this.notifyHandlers(mockEvent);
-      }, 1500 / activityMultiplier); // Using activityMultiplier to adjust frequency
-      
-      // Store the interval ID for cleanup
-      this.reconnectTimer = interval;
-    } catch (err) {
-      console.error("Error with data fallback:", err);
-      this.connectionStatus = 'error';
-      toast.error("Failed to initialize fallback data stream");
-    }
-  }
-
-  private reconnect() {
-    this.reconnectAttempts++;
-    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-    this.connect();
-  }
-
-  subscribe(handler: (event: NetworkEvent) => void) {
-    this.dataHandlers.push(handler);
+  
+  /**
+   * Subscribe to network events
+   * @param handler Function to call when a network event is received
+   * @returns Function to unsubscribe
+   */
+  subscribe(handler: (event: NetworkEvent) => void): () => void {
+    // Add the handler to our list
+    this.handlers.push(handler);
     
-    // Auto-connect when the first subscriber is added
-    if (this.dataHandlers.length === 1 && this.connectionStatus === 'disconnected') {
+    // If this is the first handler, start the connection
+    if (this.handlers.length === 1 && this._status === 'disconnected') {
       this.connect();
     }
     
+    // Return a function to unsubscribe
     return () => {
-      this.dataHandlers = this.dataHandlers.filter(h => h !== handler);
+      this.handlers = this.handlers.filter(h => h !== handler);
       
-      // Auto-disconnect when the last subscriber is removed
-      if (this.dataHandlers.length === 0) {
+      // If there are no more handlers, disconnect
+      if (this.handlers.length === 0) {
         this.disconnect();
       }
     };
   }
-
-  private notifyHandlers(event: NetworkEvent) {
-    this.dataHandlers.forEach(handler => handler(event));
+  
+  /**
+   * Simulate network events for testing and demonstration
+   */
+  private startEventSimulation(): void {
+    if (this.simulationActive) return;
+    
+    this.simulationActive = true;
+    this.emitEvents();
   }
-
-  disconnect() {
-    if (this.shodanWs) {
-      this.shodanWs.close();
-      this.shodanWs = null;
+  
+  private stopEventSimulation(): void {
+    this.simulationActive = false;
+    
+    if (this.eventInterval !== null) {
+      window.clearInterval(this.eventInterval);
+      this.eventInterval = null;
+    }
+  }
+  
+  private emitEvents(): void {
+    // Clear any existing interval
+    if (this.eventInterval !== null) {
+      window.clearInterval(this.eventInterval);
     }
     
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
+    // Generate a random number of events per second (between 1-5)
+    const eventsPerSecond = Math.floor(Math.random() * 5) + 1;
+    const interval = Math.floor(1000 / eventsPerSecond);
+    
+    this.eventInterval = window.setInterval(() => {
+      if (!this.simulationActive) {
+        this.stopEventSimulation();
+        return;
+      }
+      
+      try {
+        // 20% chance to simulate GreyNoise data integration
+        if (Math.random() < 0.2) {
+          this.fallbackToGreynoise();
+        } else {
+          const event = generateNetworkEvent();
+          this.broadcast(event);
+        }
+      } catch (error) {
+        console.error("Error generating network event:", error);
+        this._status = 'error';
+        
+        // Attempt to reconnect after a delay
+        this.attemptReconnect();
+      }
+    }, interval);
+  }
+  
+  private fallbackToGreynoise(): void {
+    try {
+      const activityMultiplier = Math.random() * 2 + 0.5; // Random multiplier between 0.5 and 2.5
+      const greynoiseData = generateGreyNoiseData(activityMultiplier);
+      const normalizedEvent = eventNormalizer(greynoiseData);
+      this.broadcast(normalizedEvent);
+    } catch (error) {
+      console.error("Error using GreyNoise fallback:", error);
+      this._status = 'error';
+      this.attemptReconnect();
+    }
+  }
+  
+  private broadcast(event: NetworkEvent): void {
+    // Clone the handlers array in case handlers are added/removed during iteration
+    const currentHandlers = [...this.handlers];
+    
+    // Notify all subscribers
+    for (const handler of currentHandlers) {
+      try {
+        handler(event);
+      } catch (error) {
+        console.error("Error in network event handler:", error);
+      }
+    }
+  }
+  
+  private attemptReconnect(): void {
+    // Only attempt to reconnect if we're not already trying
+    if (this.reconnectTimeout !== null || this._status === 'connecting') {
+      return;
     }
     
-    this.reconnectAttempts = 0;
-    this.connectionStatus = 'disconnected';
-    console.log("NetworkService disconnected");
+    this.stopEventSimulation();
+    
+    // Wait 5 seconds before reconnecting
+    this.reconnectTimeout = window.setTimeout(() => {
+      this.reconnectTimeout = null;
+      this.connect();
+    }, 5000);
   }
 }
 
-// Use your Shodan API key from before
-export const networkService = new NetworkService("OIuEKPTuhZ06hzrLaoizV3w2KPlCRUcx");
+// Create a singleton instance
+export const networkService = new NetworkService();
