@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { networkService } from "@/services/networkService";
+import { networkService } from "@/services/network/NetworkService";
 import { NetworkEvent } from "@/types/network";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RealTimeStatus } from "./RealTimeStatus";
@@ -15,7 +14,7 @@ export function TopDomainsChart() {
   const [data, setData] = useState<DomainData[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'error'>(
-    networkService.status
+    'disconnected'
   );
 
   useEffect(() => {
@@ -71,16 +70,16 @@ export function TopDomainsChart() {
       }
     };
     
-    // Subscribe to network events
-    const unsubscribe = networkService.subscribe(handleNetworkEvent);
+    // Pre-populate with some initial data immediately to avoid loading state
+    const commonDomains = [
+      'api.example.com',
+      'cdn.example.net',
+      'storage.example.org',
+      'mail.example.com',
+      'dashboard.example.io'
+    ];
     
-    // Check connection status periodically
-    const statusInterval = setInterval(() => {
-      setStatus(networkService.status);
-    }, 3000);
-    
-    // Pre-populate with some initial data
-    const initialDomains = commonDomains.slice(0, 5).map((domain, index) => ({
+    const initialDomains = commonDomains.map((domain, index) => ({
       name: domain,
       visits: Math.floor(Math.random() * 800) + 200 - (index * 100)
     }));
@@ -88,11 +87,19 @@ export function TopDomainsChart() {
     setData(initialDomains);
     setLoading(false);
     
+    // Subscribe to network events
+    const unsubscribe = networkService.subscribe(handleNetworkEvent);
+    
+    // Check connection status periodically
+    const statusInterval = setInterval(() => {
+      setStatus(networkService.isMonitoring ? 'connected' : 'disconnected');
+    }, 3000);
+    
     return () => {
       unsubscribe();
       clearInterval(statusInterval);
     };
-  }, [loading]);
+  }, []);
 
   if (loading) {
     return <Skeleton className="h-[250px] w-full" />;

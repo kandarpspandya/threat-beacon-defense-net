@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { NetworkDataPoint, NetworkEvent } from '@/types/network';
-import { networkService } from '@/services/networkService';
+import { networkService } from '@/services/network/NetworkService';
 
 export const useNetworkData = (period: string) => {
   const [data, setData] = useState<NetworkDataPoint[]>([]);

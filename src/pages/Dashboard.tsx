@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ArrowUpRight, AlertTriangle, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,13 +13,13 @@ import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { RealTimeStatus } from "@/components/dashboard/RealTimeStatus";
 import { NetworkConsentDialog } from "@/components/consent/NetworkConsentDialog";
 import { networkService } from "@/services/network/NetworkService";
-import { Globe, Database } from "@/components/icons";
+import { Globe, Database } from "lucide-react";
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("24h");
   const [networkStatus, setNetworkStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'error'>(
-    networkService.status
+    'disconnected'
   );
   const [showConsentDialog, setShowConsentDialog] = useState(true);
 
@@ -71,21 +70,26 @@ const Dashboard = () => {
       status: "blocked" as "blocked",
     },
   ];
-  
+
   const handleConsentAccept = async () => {
-    const granted = await networkService.requestPermissions();
-    if (granted) {
-      await networkService.initializeRealMonitoring();
-      toast.success("Network monitoring enabled");
-    } else {
-      toast.error("Unable to enable network monitoring");
+    try {
+      const granted = await networkService.requestPermissions();
+      if (granted) {
+        await networkService.initializeRealMonitoring();
+        toast.success("Network monitoring enabled");
+      } else {
+        toast.error("Unable to enable network monitoring");
+      }
+    } catch (error) {
+      console.error("Error during consent acceptance:", error);
+      toast.error("Failed to initialize network monitoring");
     }
     setShowConsentDialog(false);
   };
 
   useEffect(() => {
     const statusInterval = setInterval(() => {
-      setNetworkStatus(networkService.status);
+      setNetworkStatus(networkService.isMonitoring ? 'connected' : 'disconnected');
     }, 3000);
     
     return () => clearInterval(statusInterval);
