@@ -90,7 +90,7 @@ const DashboardLayout = () => {
         <div className="flex h-16 items-center justify-between px-4 border-b border-sentinel-light/10">
           <Link to="/" className="flex items-center space-x-2">
             <Shield className="h-8 w-8 text-sentinel-accent animate-pulse-glow" />
-            <span className="text-lg font-bold text-white tracking-wider">SentinelNet</span>
+            <span className="text-lg font-bold text-white tracking-wider">IDPS.net</span>
           </Link>
           <Button
             variant="ghost"

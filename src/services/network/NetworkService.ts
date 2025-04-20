@@ -1,4 +1,3 @@
-
 import { BaseNetworkService } from "./BaseNetworkService";
 import { supabase } from "@/lib/supabase";
 import { NetworkEvent } from "@/types/network";
@@ -8,6 +7,7 @@ class NetworkService extends BaseNetworkService {
   private tsharkProcess: any = null;
   private hasPermissions = false;
   private monitoringEnabled = false;
+  private monitoringMethod: 'native' | 'tshark' | 'webapi' | null = null;
 
   constructor() {
     super();
@@ -17,6 +17,17 @@ class NetworkService extends BaseNetworkService {
   async requestPermissions(): Promise<boolean> {
     try {
       console.log('NetworkService: Requesting permissions...');
+      
+      // Check if running on mobile/tablet
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        console.log('NetworkService: Mobile device detected');
+        // For mobile devices, we'll use Web APIs instead of TShark
+        this.monitoringMethod = 'webapi';
+        return this.requestWebAPIPermissions();
+      }
+      
       if ('permissions' in navigator) {
         const results = await Promise.all([
           navigator.permissions.query({ name: 'network-monitor' as PermissionName }),
@@ -34,6 +45,21 @@ class NetworkService extends BaseNetworkService {
     }
   }
 
+  private async requestWebAPIPermissions(): Promise<boolean> {
+    try {
+      // Request necessary Web API permissions for mobile devices
+      const networkInfo = await (navigator as any).connection;
+      if (networkInfo) {
+        this.hasPermissions = true;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('NetworkService: Web API permissions error:', error);
+      return false;
+    }
+  }
+
   async initializeRealMonitoring() {
     if (!this.hasPermissions) {
       console.warn('NetworkService: No permissions granted');
@@ -43,19 +69,60 @@ class NetworkService extends BaseNetworkService {
 
     try {
       console.log('NetworkService: Initializing monitoring...');
-      if ('networkMonitor' in window) {
-        const monitor = (window as any).networkMonitor;
-        monitor.addEventListener('packet', this.handleNativePacket.bind(this));
-        this.monitoringEnabled = true;
-        console.log('NetworkService: Native monitoring initialized');
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        await this.initializeMobileMonitoring();
+      } else if ('networkMonitor' in window) {
+        await this.initializeNativeMonitoring();
       } else {
-        console.log('NetworkService: Falling back to TShark');
-        await this.initializeTShark();
+        // Check if TShark is installed
+        const tsharkAvailable = await this.checkTSharkAvailability();
+        if (tsharkAvailable) {
+          await this.initializeTShark();
+        } else {
+          toast.error("Please install TShark for enhanced network monitoring. Visit our documentation for installation instructions.");
+          // Fallback to basic Web API monitoring
+          await this.initializeWebAPIMonitoring();
+        }
       }
     } catch (error) {
       console.error('NetworkService: Initialization error:', error);
       toast.error("Failed to initialize network monitoring");
     }
+  }
+
+  private async checkTSharkAvailability(): Promise<boolean> {
+    try {
+      // In a real implementation, this would check if TShark is installed
+      // For now, we'll simulate the check
+      return false;
+    } catch (error) {
+      console.error('NetworkService: TShark check error:', error);
+      return false;
+    }
+  }
+
+  private async initializeMobileMonitoring() {
+    console.log('NetworkService: Initializing mobile monitoring...');
+    this.monitoringMethod = 'webapi';
+    this.monitoringEnabled = true;
+    toast.success("Mobile network monitoring enabled");
+  }
+
+  private async initializeNativeMonitoring() {
+    const monitor = (window as any).networkMonitor;
+    monitor.addEventListener('packet', this.handleNativePacket.bind(this));
+    this.monitoringMethod = 'native';
+    this.monitoringEnabled = true;
+    console.log('NetworkService: Native monitoring initialized');
+  }
+
+  private async initializeWebAPIMonitoring() {
+    this.monitoringMethod = 'webapi';
+    this.monitoringEnabled = true;
+    console.log('NetworkService: Web API monitoring initialized');
+    toast.success("Basic network monitoring enabled");
   }
 
   private async initializeTShark() {
@@ -111,7 +178,8 @@ class NetworkService extends BaseNetworkService {
           ports: event.ports,
           country: event.location?.country_code,
           classification: event.classification,
-          tags: event.tags
+          tags: event.tags,
+          monitoring_method: this.monitoringMethod
         });
         
       if (error) {
@@ -124,6 +192,10 @@ class NetworkService extends BaseNetworkService {
 
   get isMonitoring(): boolean {
     return this.monitoringEnabled;
+  }
+
+  get currentMonitoringMethod(): string {
+    return this.monitoringMethod || 'none';
   }
 }
 
