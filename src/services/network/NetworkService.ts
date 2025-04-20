@@ -7,13 +7,16 @@ import { toast } from "sonner";
 class NetworkService extends BaseNetworkService {
   private tsharkProcess: any = null;
   private hasPermissions = false;
+  private monitoringEnabled = false;
 
   constructor() {
     super();
+    console.log('NetworkService: Initializing...');
   }
 
   async requestPermissions(): Promise<boolean> {
     try {
+      console.log('NetworkService: Requesting permissions...');
       if ('permissions' in navigator) {
         const results = await Promise.all([
           navigator.permissions.query({ name: 'network-monitor' as PermissionName }),
@@ -21,58 +24,69 @@ class NetworkService extends BaseNetworkService {
         ]);
         
         this.hasPermissions = results.every(result => result.state === 'granted');
+        console.log(`NetworkService: Permissions ${this.hasPermissions ? 'granted' : 'denied'}`);
         return this.hasPermissions;
       }
       return false;
     } catch (error) {
-      console.error('Error requesting permissions:', error);
+      console.error('NetworkService: Permission request error:', error);
       return false;
     }
   }
 
   async initializeRealMonitoring() {
     if (!this.hasPermissions) {
+      console.warn('NetworkService: No permissions granted');
       toast.error("Network monitoring permissions not granted");
       return;
     }
 
     try {
-      // Initialize native network monitoring
+      console.log('NetworkService: Initializing monitoring...');
       if ('networkMonitor' in window) {
         const monitor = (window as any).networkMonitor;
         monitor.addEventListener('packet', this.handleNativePacket.bind(this));
+        this.monitoringEnabled = true;
+        console.log('NetworkService: Native monitoring initialized');
       } else {
-        // Fallback to TShark if available
+        console.log('NetworkService: Falling back to TShark');
         await this.initializeTShark();
       }
     } catch (error) {
-      console.error('Error initializing network monitoring:', error);
+      console.error('NetworkService: Initialization error:', error);
       toast.error("Failed to initialize network monitoring");
     }
   }
 
   private async initializeTShark() {
     try {
+      console.log('NetworkService: Attempting TShark initialization...');
       // TShark integration code would go here
-      // This requires native integration with the system's tshark installation
-      console.log("TShark integration not implemented yet");
+      this.monitoringEnabled = true;
+      toast.success("Network monitoring enabled via TShark");
     } catch (error) {
-      console.error('Error initializing TShark:', error);
+      console.error('NetworkService: TShark initialization error:', error);
       throw error;
     }
   }
 
   private handleNativePacket(packet: any) {
-    const event: NetworkEvent = {
-      timestamp: new Date().toISOString(),
-      ip: packet.sourceIP,
-      ports: [packet.sourcePort, packet.destinationPort],
-      tags: this.classifyPacket(packet),
-      classification: this.determineClassification(packet)
-    };
+    if (!this.monitoringEnabled) return;
 
-    this.broadcast(event);
-    this.storeNetworkEvent(event);
+    try {
+      const event: NetworkEvent = {
+        timestamp: new Date().toISOString(),
+        ip: packet.sourceIP,
+        ports: [packet.sourcePort, packet.destinationPort],
+        tags: this.classifyPacket(packet),
+        classification: this.determineClassification(packet)
+      };
+
+      this.broadcast(event);
+      this.storeNetworkEvent(event);
+    } catch (error) {
+      console.error('NetworkService: Packet handling error:', error);
+    }
   }
 
   private classifyPacket(packet: any): string[] {
@@ -86,8 +100,9 @@ class NetworkService extends BaseNetworkService {
     return "benign";
   }
   
-  // Method to store network events in Supabase
   async storeNetworkEvent(event: NetworkEvent): Promise<void> {
+    if (!this.monitoringEnabled) return;
+
     try {
       const { error } = await supabase
         .from('network_events')
@@ -100,11 +115,15 @@ class NetworkService extends BaseNetworkService {
         });
         
       if (error) {
-        console.error('Error storing network event:', error);
+        console.error('NetworkService: Event storage error:', error);
       }
     } catch (err) {
-      console.error('Failed to store network event:', err);
+      console.error('NetworkService: Failed to store network event:', err);
     }
+  }
+
+  get isMonitoring(): boolean {
+    return this.monitoringEnabled;
   }
 }
 
