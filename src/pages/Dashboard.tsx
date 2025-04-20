@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ArrowUpRight, AlertTriangle, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { RealTimeStatus } from "@/components/dashboard/RealTimeStatus";
 import { NetworkConsentDialog } from "@/components/consent/NetworkConsentDialog";
 import { networkService } from "@/services/network/NetworkService";
 import { Globe, Database } from "@/components/icons";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("24h");
