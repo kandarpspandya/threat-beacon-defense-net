@@ -1,54 +1,52 @@
 
-export interface NetworkDataPoint {
-  name: string;
-  "Normal Traffic": number;
-  "Suspicious Activity": number;
-  "Blocked Threats": number;
-}
-
+// Definition for network event data
 export interface NetworkEvent {
   timestamp: string;
   ip: string;
-  ports?: number[];
+  ports: number[];
   tags?: string[];
-  classification?: string;
-  country?: string;
-  asn?: string;
-  organization?: string;
+  classification: "benign" | "malicious" | "unknown";
   location?: {
-    latitude?: number;
-    longitude?: number;
     country_code?: string;
+    city?: string;
+    lat?: number;
+    lon?: number;
   };
-  vulns?: Record<string, any>;
+  user_context?: {
+    username?: string;
+    device_id?: string;
+    session_id?: string;
+  };
 }
 
+// Definition for protocol data used in charts
 export interface ProtocolData {
   name: string;
   value: number;
   color: string;
 }
 
-export interface TrafficSource {
+// Definition for network data points in charts
+export interface NetworkDataPoint {
   name: string;
-  value: number;
-  color: string;
+  [key: string]: string | number; // To allow for dynamic data properties
 }
 
-export interface TopConnection {
-  source: string;
-  destination: string;
-  protocol: string;
-  packets: number;
-  bytes: number;
+// Traffic data for time-based charts
+export interface TrafficData {
+  hour: string;
+  incoming: number;
+  outgoing: number;
 }
 
-export interface ThreatData {
+// Definition for a security alert or threat
+export interface SecurityAlert {
   id: number;
   type: string;
   source: string;
   destination: string;
-  severity: "low" | "medium" | "high";
+  severity: "low" | "medium" | "high" | "critical";
   timestamp: string;
-  status: "monitoring" | "blocked" | "resolved";
+  status: "blocked" | "monitoring" | "resolved" | "investigating";
+  details?: string;
 }

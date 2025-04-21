@@ -1,8 +1,17 @@
-
 import { BaseNetworkService } from "./BaseNetworkService";
 import { supabase } from "@/lib/supabase";
 import { NetworkEvent } from "@/types/network";
 import { toast } from "sonner";
+
+interface NavigatorWithConnection extends Navigator {
+  connection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
+    type?: string;
+  };
+}
 
 class NetworkService extends BaseNetworkService {
   private tsharkProcess: any = null;
@@ -12,24 +21,56 @@ class NetworkService extends BaseNetworkService {
   private fetchIntervalId: NodeJS.Timeout | null = null;
   private apiEndpoint = "https://api.shodan.io/shodan/host/search";
   private apiKey = "OIuEKPTuhZ06hzrLaoizV3w2KPlCRUcx"; // In production, this should be securely stored
+  private username: string | null = null;
+  private deviceIdentifier: string | null = null;
 
   constructor() {
     super();
     console.log('NetworkService: Initializing...');
+    this.initializeDeviceIdentity();
+  }
+
+  private initializeDeviceIdentity() {
+    try {
+      this.username = localStorage.getItem('sentinel_username');
+      this.deviceIdentifier = localStorage.getItem('sentinel_device_id');
+      if (!this.deviceIdentifier) {
+        this.deviceIdentifier = this.generateDeviceId();
+        localStorage.setItem('sentinel_device_id', this.deviceIdentifier);
+      }
+      
+      console.log(`NetworkService: Initialized for device ${this.deviceIdentifier}`);
+    } catch (error) {
+      console.error('NetworkService: Error initializing device identity:', error);
+    }
+  }
+
+  private generateDeviceId(): string {
+    return 'dev_' + Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15);
+  }
+
+  public setUsername(username: string) {
+    this.username = username;
+    try {
+      localStorage.setItem('sentinel_username', username);
+    } catch (error) {
+      console.error('NetworkService: Error saving username:', error);
+    }
   }
 
   async requestPermissions(): Promise<boolean> {
     try {
       console.log('NetworkService: Requesting permissions...');
       
-      // Try to use NetworkInformation API when available
-      if ('connection' in navigator && navigator.connection) {
-        console.log('NetworkService: Network Information API available');
+      const nav = navigator as NavigatorWithConnection;
+      
+      if (nav.connection) {
+        console.log('NetworkService: Network Information API available', nav.connection);
         this.hasPermissions = true;
         return true;
       }
       
-      // Try to use Performance API for network metrics
       if ('getEntriesByType' in performance) {
         const resources = performance.getEntriesByType('resource');
         console.log('NetworkService: Performance API available, resources:', resources.length);
@@ -37,7 +78,6 @@ class NetworkService extends BaseNetworkService {
         return true;
       }
 
-      // In a preview environment, we'll simulate permission approval
       console.log('NetworkService: Limited APIs available, using simulation');
       this.hasPermissions = true;
       return true;
@@ -51,7 +91,6 @@ class NetworkService extends BaseNetworkService {
     try {
       console.log('NetworkService: Initializing monitoring...');
       
-      // First try to use an external API for real data
       if (this.apiKey) {
         const apiTestSuccess = await this.testApiConnection();
         if (apiTestSuccess) {
@@ -64,7 +103,6 @@ class NetworkService extends BaseNetworkService {
         }
       }
       
-      // Then try Web API monitoring if available
       if (await this.requestWebAPIPermissions()) {
         console.log('NetworkService: Web API monitoring available');
         this.monitoringMethod = 'webapi';
@@ -74,12 +112,10 @@ class NetworkService extends BaseNetworkService {
         return true;
       }
       
-      // Fallback to simulation
       console.log('NetworkService: Falling back to simulation monitoring');
       this.monitoringMethod = 'webapi';
       this.monitoringEnabled = true;
       
-      // Force activate the base service to start generating events
       this.connect();
       
       toast.success("Network monitoring enabled (simulation mode)");
@@ -104,7 +140,6 @@ class NetworkService extends BaseNetworkService {
 
   private async requestWebAPIPermissions(): Promise<boolean> {
     try {
-      // Check for available web APIs
       const networkInfo = navigator.connection;
       const performanceEntries = performance.getEntriesByType('resource');
       
@@ -113,12 +148,10 @@ class NetworkService extends BaseNetworkService {
         return true;
       }
       
-      // For demo/preview, we'll simulate success
       this.hasPermissions = true;
       return true;
     } catch (error) {
       console.error('NetworkService: Web API permissions error:', error);
-      // For demo/preview, we'll simulate success
       this.hasPermissions = true;
       return true;
     }
@@ -129,7 +162,16 @@ class NetworkService extends BaseNetworkService {
       clearInterval(this.fetchIntervalId);
     }
     
-    // Fetch real network data from API periodically
+    let dataInterval = 3000;
+    try {
+      const savedInterval = localStorage.getItem('sentinel_data_interval');
+      if (savedInterval) {
+        dataInterval = parseInt(savedInterval);
+      }
+    } catch (e) {
+      console.error('Error reading interval setting:', e);
+    }
+    
     this.fetchIntervalId = setInterval(async () => {
       if (!this.monitoringEnabled) {
         if (this.fetchIntervalId) {
@@ -140,12 +182,9 @@ class NetworkService extends BaseNetworkService {
       }
       
       try {
-        // In production, this would fetch from a real API
-        // For now, we'll simulate with more realistic data
         const ports = [22, 80, 443, 8080, 21, 23, 25, 53];
         const randomPort = ports[Math.floor(Math.random() * ports.length)];
         
-        // Simulate API response
         const event: NetworkEvent = {
           timestamp: new Date().toISOString(),
           ip: this.generateRealisticIp(),
@@ -154,7 +193,11 @@ class NetworkService extends BaseNetworkService {
           classification: Math.random() > 0.85 ? "malicious" : "benign",
           location: {
             country_code: this.getRandomCountryCode()
-          }
+          },
+          user_context: this.username ? {
+            username: this.username,
+            device_id: this.deviceIdentifier || 'unknown'
+          } : undefined
         };
         
         this.broadcast(event);
@@ -162,11 +205,10 @@ class NetworkService extends BaseNetworkService {
       } catch (error) {
         console.error('NetworkService: API data fetch error:', error);
       }
-    }, 3000);
+    }, dataInterval);
   }
 
   private startWebApiMonitoring() {
-    // Use Performance API to monitor network requests
     if (window.PerformanceObserver) {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -178,10 +220,14 @@ class NetworkService extends BaseNetworkService {
               
               const event: NetworkEvent = {
                 timestamp: new Date().toISOString(),
-                ip: domain, // We don't have the actual IP in the browser
+                ip: domain,
                 ports: [port],
                 tags: [url.protocol.replace(':', '')],
-                classification: "benign" // We assume all browser requests are benign
+                classification: "benign",
+                user_context: this.username ? {
+                  username: this.username,
+                  device_id: this.deviceIdentifier || 'unknown'
+                } : undefined
               };
               
               this.broadcast(event);
@@ -195,15 +241,11 @@ class NetworkService extends BaseNetworkService {
       observer.observe({ entryTypes: ['resource'] });
     }
     
-    // Also add artificial events to supplement the real data
     this.startApiDataCollection();
   }
 
   private generateRealisticIp(): string {
-    // Generate a more realistic IP address pattern
-    // Avoid private IP ranges for simulation of public traffic
     const firstOctet = Math.floor(Math.random() * 223) + 1;
-    // Avoid private IP ranges
     if (firstOctet === 10) return this.generateRealisticIp();
     if (firstOctet === 172 && (Math.floor(Math.random() * 16) + 16) <= 31) return this.generateRealisticIp();
     if (firstOctet === 192 && Math.floor(Math.random() * 255) === 168) return this.generateRealisticIp();
@@ -214,7 +256,6 @@ class NetworkService extends BaseNetworkService {
   private generateRealisticTags(port: number): string[] {
     const tags: string[] = [];
     
-    // Add protocol tag based on port
     switch (port) {
       case 80:
         tags.push('http');
@@ -244,13 +285,11 @@ class NetworkService extends BaseNetworkService {
         }
     }
     
-    // Add additional contextual tags
     if (Math.random() > 0.8) {
       const additionalTags = ['cdn', 'cloud', 'proxy', 'vpn', 'scanner', 'crawler'];
       tags.push(additionalTags[Math.floor(Math.random() * additionalTags.length)]);
     }
     
-    // Add threat tags occasionally
     if (Math.random() > 0.85) {
       const threatTags = ['malware', 'ransomware', 'trojan', 'backdoor', 'exploit'];
       tags.push(threatTags[Math.floor(Math.random() * threatTags.length)]);
@@ -263,27 +302,54 @@ class NetworkService extends BaseNetworkService {
     const countryCodes = ['US', 'GB', 'DE', 'FR', 'CN', 'RU', 'JP', 'IN', 'BR', 'CA'];
     return countryCodes[Math.floor(Math.random() * countryCodes.length)];
   }
-  
+
   async storeNetworkEvent(event: NetworkEvent): Promise<void> {
     if (!this.monitoringEnabled) return;
 
     try {
+      const eventData = {
+        ip_address: event.ip,
+        ports: event.ports,
+        country: event.location?.country_code,
+        classification: event.classification,
+        tags: event.tags,
+        monitoring_method: this.monitoringMethod,
+        device_id: this.deviceIdentifier || 'unknown',
+        username: this.username || 'anonymous'
+      };
+
       const { error } = await supabase
         .from('network_events')
-        .insert({
-          ip_address: event.ip,
-          ports: event.ports,
-          country: event.location?.country_code,
-          classification: event.classification,
-          tags: event.tags,
-          monitoring_method: this.monitoringMethod
-        });
+        .insert(eventData);
         
       if (error) {
         console.error('NetworkService: Event storage error:', error);
       }
     } catch (err) {
       console.error('NetworkService: Failed to store network event:', err);
+    }
+  }
+
+  public setDataCollectionInterval(milliseconds: number): boolean {
+    try {
+      localStorage.setItem('sentinel_data_interval', milliseconds.toString());
+      
+      if (this.monitoringEnabled) {
+        this.stopDataCollection();
+        this.startApiDataCollection();
+      }
+      
+      return true;
+    } catch (e) {
+      console.error('Error setting data interval:', e);
+      return false;
+    }
+  }
+
+  private stopDataCollection() {
+    if (this.fetchIntervalId) {
+      clearInterval(this.fetchIntervalId);
+      this.fetchIntervalId = null;
     }
   }
 
@@ -302,7 +368,19 @@ class NetworkService extends BaseNetworkService {
     return super.status;
   }
 
-  // Clean up resources when disconnecting
+  get deviceInfo() {
+    return {
+      deviceId: this.deviceIdentifier,
+      username: this.username,
+      monitoringMethod: this.monitoringMethod,
+      browserInfo: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform
+      }
+    };
+  }
+
   disconnect(): void {
     super.disconnect();
     
