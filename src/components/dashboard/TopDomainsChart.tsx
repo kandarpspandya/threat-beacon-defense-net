@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { networkService } from "@/services/network/NetworkService";
 import { NetworkEvent } from "@/types/network";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RealTimeStatus } from "./RealTimeStatus";
+import { toast } from "sonner";
 
 interface DomainData {
   name: string;
@@ -22,7 +24,7 @@ export function TopDomainsChart() {
     // Domain counter
     const domainCounts: Record<string, number> = {};
 
-    // The only definition needed
+    // The domain list that we'll populate with real data when available
     const allCommonDomains = [
       'api.example.com',
       'cdn.example.net',
@@ -41,24 +43,36 @@ export function TopDomainsChart() {
 
     // Handle incoming network events
     const handleNetworkEvent = (event: NetworkEvent) => {
-      console.log("TopDomainsChart: Received network event", event.tags);
-      // In a real implementation, you would extract domain from HTTP headers
-      // Here we'll simulate by randomly selecting domains
-      if (event.tags?.includes('http') || event.tags?.includes('https')) {
-        const domainIndex = Math.floor(Math.random() * allCommonDomains.length);
-        const domain = allCommonDomains[domainIndex];
+      console.log("TopDomainsChart: Received network event", event);
+      
+      try {
+        // Extract domain from NetworkEvent
+        // In a real implementation, this would come from HTTP headers or DNS queries
+        let domain;
         
-        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
-        updateChartData(domainCounts);
-      } else {
-        // Even for non-HTTP traffic, we'll show something for demo purposes
-        if (Math.random() > 0.7) {
-          const domainIndex = Math.floor(Math.random() * allCommonDomains.length);
-          const domain = allCommonDomains[domainIndex];
-          
-          domainCounts[domain] = (domainCounts[domain] || 0) + 1;
-          updateChartData(domainCounts);
+        // Try to extract domain from the event data
+        if (event.ip) {
+          // If there are HTTP tags, we can assume it's web traffic
+          if (event.tags?.includes('http') || event.tags?.includes('https')) {
+            // Try to use a reverse DNS lookup in a real implementation
+            // For now we'll use our simulation approach with more realistic behavior
+            if (Math.random() > 0.5) {
+              // Extract domain from common domains for simulation
+              const domainIndex = Math.floor(Math.random() * allCommonDomains.length);
+              domain = allCommonDomains[domainIndex];
+            } else {
+              // Generate a random domain (more realistic simulation)
+              const tlds = ['.com', '.org', '.net', '.io', '.co'];
+              const randomTld = tlds[Math.floor(Math.random() * tlds.length)];
+              domain = `${event.ip.replace(/\./g, '-')}.ip${randomTld}`;
+            }
+            
+            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+            updateChartData(domainCounts);
+          }
         }
+      } catch (err) {
+        console.error("Error processing domain data:", err);
       }
     };
 
@@ -81,23 +95,63 @@ export function TopDomainsChart() {
       }
     };
 
-    // Pre-populate with some initial data immediately to avoid loading state
-    const initialDomainsSubset = allCommonDomains.slice(0, 5);
-    const initialDomains = initialDomainsSubset.map((domain, index) => ({
-      name: domain,
-      visits: Math.floor(Math.random() * 800) + 200 - (index * 100)
-    }));
+    // Try to connect to real monitoring
+    const startRealMonitoring = async () => {
+      try {
+        // Request permissions for network monitoring
+        const hasPermissions = await networkService.requestPermissions();
+        if (hasPermissions) {
+          // Initialize real monitoring if permissions granted
+          const success = await networkService.initializeRealMonitoring();
+          if (success) {
+            console.log("TopDomainsChart: Connected to real network monitoring");
+            toast.success("Connected to real network monitoring");
+            setStatus('connected');
+          } else {
+            console.log("TopDomainsChart: Failed to initialize real monitoring");
+            toast.error("Could not connect to real network monitoring, using simulation");
+            setStatus('error');
+            // Prepopulate with sample data
+            initializeSampleData();
+          }
+        } else {
+          console.log("TopDomainsChart: No permissions for real monitoring");
+          toast.error("No permissions for real network monitoring, using simulation");
+          setStatus('error');
+          // Prepopulate with sample data
+          initializeSampleData();
+        }
+      } catch (err) {
+        console.error("Error starting real monitoring:", err);
+        toast.error("Error starting real monitoring, using simulation");
+        setStatus('error');
+        // Prepopulate with sample data
+        initializeSampleData();
+      }
+    };
 
-    setData(initialDomains);
-    setLoading(false);
+    // Initialize with sample data if needed
+    const initializeSampleData = () => {
+      const initialDomainsSubset = allCommonDomains.slice(0, 5);
+      const initialDomains = initialDomainsSubset.map((domain, index) => ({
+        name: domain,
+        visits: Math.floor(Math.random() * 800) + 200 - (index * 100)
+      }));
+      
+      setData(initialDomains);
+      setLoading(false);
+    };
 
     // Subscribe to network events
     const unsubscribe = networkService.subscribe(handleNetworkEvent);
     console.log("TopDomainsChart: Subscribed to network events");
 
-    // Check connection status periodically and force update the chart
+    // Start real monitoring
+    startRealMonitoring();
+
+    // Check connection status periodically
     const statusInterval = setInterval(() => {
-      const currentStatus = networkService.isMonitoring ? 'connected' : 'disconnected';
+      const currentStatus = networkService.status;
       setStatus(currentStatus);
       
       // If we're connected, occasionally add random data to keep chart active
