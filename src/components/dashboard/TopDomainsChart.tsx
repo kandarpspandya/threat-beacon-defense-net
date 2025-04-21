@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { networkService } from "@/services/network/NetworkService";
@@ -20,9 +21,9 @@ export function TopDomainsChart() {
   useEffect(() => {
     // Domain counter
     const domainCounts: Record<string, number> = {};
-    
-    // List of common domains to simulate with
-    const commonDomains = [
+
+    // More comprehensive list of domains to simulate network events
+    const allCommonDomains = [
       'api.example.com',
       'cdn.example.net',
       'storage.example.org',
@@ -37,20 +38,20 @@ export function TopDomainsChart() {
       'storage.googleapis.com',
       'api.github.com'
     ];
-    
+
     // Handle incoming network events
     const handleNetworkEvent = (event: NetworkEvent) => {
       // In a real implementation, you would extract domain from HTTP headers
       // Here we'll simulate by randomly selecting domains
       if (event.tags?.includes('http') || event.tags?.includes('https')) {
-        const domainIndex = Math.floor(Math.random() * commonDomains.length);
-        const domain = commonDomains[domainIndex];
-        
+        const domainIndex = Math.floor(Math.random() * allCommonDomains.length);
+        const domain = allCommonDomains[domainIndex];
+
         domainCounts[domain] = (domainCounts[domain] || 0) + 1;
         updateChartData(domainCounts);
       }
     };
-    
+
     // Update the chart data with the top domains
     const updateChartData = (counts: Record<string, number>) => {
       // Sort domains by visit count and take top 5
@@ -61,7 +62,7 @@ export function TopDomainsChart() {
           name: domain,
           visits: count
         }));
-      
+
       if (topDomains.length > 0) {
         setData(topDomains);
         if (loading) {
@@ -69,32 +70,31 @@ export function TopDomainsChart() {
         }
       }
     };
-    
+
     // Pre-populate with some initial data immediately to avoid loading state
-    const commonDomains = [
+    const initialDomainsSubset = [
       'api.example.com',
       'cdn.example.net',
       'storage.example.org',
       'mail.example.com',
       'dashboard.example.io'
     ];
-    
-    const initialDomains = commonDomains.map((domain, index) => ({
+    const initialDomains = initialDomainsSubset.map((domain, index) => ({
       name: domain,
       visits: Math.floor(Math.random() * 800) + 200 - (index * 100)
     }));
-    
+
     setData(initialDomains);
     setLoading(false);
-    
+
     // Subscribe to network events
     const unsubscribe = networkService.subscribe(handleNetworkEvent);
-    
+
     // Check connection status periodically
     const statusInterval = setInterval(() => {
       setStatus(networkService.isMonitoring ? 'connected' : 'disconnected');
     }, 3000);
-    
+
     return () => {
       unsubscribe();
       clearInterval(statusInterval);
