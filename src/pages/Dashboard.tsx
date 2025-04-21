@@ -75,16 +75,27 @@ const Dashboard = () => {
   const handleConsentAccept = async () => {
     console.log('[Dashboard] User accepted consent. Starting permissions and monitoring.'); // Diagnostic log
     try {
+      setNetworkStatus('connecting');
+      
       const granted = await networkService.requestPermissions();
       console.log('[Dashboard] Permissions granted?', granted); // Diagnostic log
+      
       if (granted) {
-        await networkService.initializeRealMonitoring();
-        toast.success("Network monitoring enabled");
+        const success = await networkService.initializeRealMonitoring();
+        if (success) {
+          setNetworkStatus('connected');
+          toast.success("Network monitoring enabled");
+        } else {
+          setNetworkStatus('error');
+          toast.error("Unable to enable network monitoring");
+        }
       } else {
+        setNetworkStatus('error');
         toast.error("Unable to enable network monitoring");
       }
     } catch (error) {
       console.error("Error during consent acceptance:", error);
+      setNetworkStatus('error');
       toast.error("Failed to initialize network monitoring");
     }
     setShowConsentDialog(false);
