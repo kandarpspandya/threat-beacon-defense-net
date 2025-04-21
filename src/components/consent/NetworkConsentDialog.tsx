@@ -24,16 +24,10 @@ export function NetworkConsentDialog({ open, onOpenChange, onAccept }: NetworkCo
   const handleAccept = async () => {
     setLoading(true);
     try {
-      // Request necessary permissions
-      if ('permissions' in navigator) {
-        await Promise.all([
-          navigator.permissions.query({ name: 'network-monitor' as PermissionName }),
-          navigator.permissions.query({ name: 'system-monitor' as PermissionName })
-        ]);
-      }
+      // Directly trigger accept (browser permissions are not supported)
       onAccept();
     } catch (error) {
-      console.error('Error requesting permissions:', error);
+      console.error('Error when enabling monitoring:', error);
     } finally {
       setLoading(false);
     }
@@ -45,7 +39,7 @@ export function NetworkConsentDialog({ open, onOpenChange, onAccept }: NetworkCo
         <DialogHeader>
           <DialogTitle>Enable Network Monitoring</DialogTitle>
           <DialogDescription>
-            To provide real-time network analysis, SentinelNet needs access to your network traffic data.
+            To provide real-time network analysis, <b>IDPS.net</b> needs access to your network traffic data.
           </DialogDescription>
         </DialogHeader>
         
@@ -73,7 +67,7 @@ export function NetworkConsentDialog({ open, onOpenChange, onAccept }: NetworkCo
             Cancel
           </Button>
           <Button onClick={handleAccept} disabled={loading}>
-            {loading ? "Requesting Access..." : "Enable Monitoring"}
+            {loading ? "Enabling..." : "Enable Monitoring"}
           </Button>
         </DialogFooter>
       </DialogContent>
