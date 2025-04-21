@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ArrowUpRight, AlertTriangle, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,8 +73,10 @@ const Dashboard = () => {
   ];
 
   const handleConsentAccept = async () => {
+    console.log('[Dashboard] User accepted consent. Starting permissions and monitoring.'); // Diagnostic log
     try {
       const granted = await networkService.requestPermissions();
+      console.log('[Dashboard] Permissions granted?', granted); // Diagnostic log
       if (granted) {
         await networkService.initializeRealMonitoring();
         toast.success("Network monitoring enabled");

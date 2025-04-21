@@ -22,9 +22,9 @@ export function NetworkConsentDialog({ open, onOpenChange, onAccept }: NetworkCo
   const [loading, setLoading] = useState(false);
 
   const handleAccept = async () => {
+    console.log('[ConsentDialog] Enable Monitoring button clicked'); // Diagnostic log
     setLoading(true);
     try {
-      // Directly trigger accept (browser permissions are not supported)
       onAccept();
     } catch (error) {
       console.error('Error when enabling monitoring:', error);

@@ -22,7 +22,7 @@ export function TopDomainsChart() {
     // Domain counter
     const domainCounts: Record<string, number> = {};
 
-    // More comprehensive list of domains to simulate network events
+    // The only definition needed
     const allCommonDomains = [
       'api.example.com',
       'cdn.example.net',
@@ -72,13 +72,7 @@ export function TopDomainsChart() {
     };
 
     // Pre-populate with some initial data immediately to avoid loading state
-    const initialDomainsSubset = [
-      'api.example.com',
-      'cdn.example.net',
-      'storage.example.org',
-      'mail.example.com',
-      'dashboard.example.io'
-    ];
+    const initialDomainsSubset = allCommonDomains.slice(0, 5);
     const initialDomains = initialDomainsSubset.map((domain, index) => ({
       name: domain,
       visits: Math.floor(Math.random() * 800) + 200 - (index * 100)
@@ -144,3 +138,4 @@ export function TopDomainsChart() {
     </div>
   );
 }
+
