@@ -6,8 +6,16 @@ const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Redirect to dashboard on load
-    navigate("/");
+    // Redirect to dashboard without creating an infinite loop
+    // by checking if we're already on the home page
+    const currentPath = window.location.pathname;
+    if (currentPath === "/" || currentPath === "") {
+      // We're already on the index route, load the Dashboard component directly
+      console.log("Index: Already on root path, loading dashboard");
+    } else {
+      // Only redirect if we're not already on the home path
+      navigate("/");
+    }
   }, [navigate]);
 
   return (
