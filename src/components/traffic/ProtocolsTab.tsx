@@ -12,7 +12,7 @@ export const ProtocolsTab = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="h-[500px] flex items-center justify-center">
-        <div className="w-full max-w-2xl mx-auto">
+        <div className="w-full max-w-2xl mx-auto flex items-center justify-center">
           <ProtocolDistribution />
         </div>
       </CardContent>
