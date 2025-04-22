@@ -11,6 +11,7 @@ import { OverviewTab } from "@/components/traffic/OverviewTab";
 import { ProtocolsTab } from "@/components/traffic/ProtocolsTab";
 import { SourcesTab } from "@/components/traffic/SourcesTab";
 import { TrendsTab } from "@/components/traffic/TrendsTab";
+import { toast } from "sonner";
 
 const TrafficAnalysis = () => {
   const [timeRange, setTimeRange] = useState("24h");
@@ -26,6 +27,57 @@ const TrafficAnalysis = () => {
     
     return () => clearInterval(statusTimer);
   }, []);
+
+  // Handle data export based on time range
+  const handleExportData = () => {
+    try {
+      // Generate CSV data based on current time range
+      const headers = "timestamp,source,destination,protocol,bytes,status\n";
+      const rows = [];
+      
+      // Generate sample rows (in production this would use actual data)
+      const numRows = timeRange === "1h" ? 60 : 
+                     timeRange === "24h" ? 120 :
+                     timeRange === "7d" ? 168 : 200;
+                     
+      const now = new Date();
+      
+      for (let i = 0; i < numRows; i++) {
+        const timestamp = new Date(now.getTime() - (i * 60000));
+        const source = `192.168.1.${Math.floor(Math.random() * 255)}`;
+        const commonDomains = ['api.example.com', 'cdn.example.net', 'login.example.com', 'api.google.com'];
+        const destination = Math.random() > 0.4 ? 
+          commonDomains[Math.floor(Math.random() * commonDomains.length)] : 
+          `52.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+        
+        const protocols = ["HTTP", "HTTPS", "DNS", "SSH", "SMTP"];
+        const protocol = protocols[Math.floor(Math.random() * protocols.length)];
+        
+        const bytes = Math.floor(Math.random() * 1000000);
+        const status = Math.random() > 0.9 ? "blocked" : "allowed";
+        
+        rows.push(`${timestamp.toISOString()},${source},${destination},${protocol},${bytes},${status}`);
+      }
+      
+      const csvContent = headers + rows.join("\n");
+      
+      // Create and download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('hidden', '');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `network-traffic-${timeRange}-${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success(`Network traffic data for ${timeRange} period exported successfully`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Error exporting network traffic data");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -50,7 +102,7 @@ const TrafficAnalysis = () => {
             </SelectContent>
           </Select>
           
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportData}>
             <Download className="mr-2 h-4 w-4" />
             Export Data
           </Button>

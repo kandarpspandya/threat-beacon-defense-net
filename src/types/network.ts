@@ -26,9 +26,19 @@ export interface ProtocolData {
   color: string;
 }
 
+// Definition for traffic source data
+export interface TrafficSource {
+  name: string;
+  value: number;
+  color: string;
+}
+
 // Definition for network data points in charts
 export interface NetworkDataPoint {
   name: string;
+  "Normal Traffic": number;
+  "Suspicious Activity": number;
+  "Blocked Threats": number;
   [key: string]: string | number; // To allow for dynamic data properties
 }
 
@@ -49,4 +59,17 @@ export interface SecurityAlert {
   timestamp: string;
   status: "blocked" | "monitoring" | "resolved" | "investigating";
   details?: string;
+}
+
+// Definition for network connection
+export interface NetworkConnection {
+  id: number;
+  source: string;
+  destination: string;
+  protocol: string;
+  packets: number;
+  bytes: string;
+  isInternal: boolean;
+  isExternal: boolean;
+  timestamp: string;
 }

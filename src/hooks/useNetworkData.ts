@@ -51,9 +51,9 @@ export const useNetworkData = (period: string) => {
         const point = updatedDataPoints[existingPointIndex];
         
         if (event.classification === "benign") {
-          point["Normal Traffic"] += 1;
+          point["Normal Traffic"] = Number(point["Normal Traffic"]) + 1;
         } else if (event.classification === "malicious") {
-          point["Blocked Threats"] += 1;
+          point["Blocked Threats"] = Number(point["Blocked Threats"]) + 1;
         }
         
         if (event.tags && event.tags.length > 0) {
@@ -61,7 +61,7 @@ export const useNetworkData = (period: string) => {
           const suspiciousTags = event.tags.filter(tag => 
             ['scanner', 'crawler', 'proxy', 'vpn', 'backdoor', 'exploit', 'malware', 'ransomware', 'trojan', 'unknown'].includes(tag)
           );
-          point["Suspicious Activity"] += suspiciousTags.length;
+          point["Suspicious Activity"] = Number(point["Suspicious Activity"]) + suspiciousTags.length;
         }
         
         setData(updatedDataPoints);
@@ -206,9 +206,9 @@ export const useNetworkData = (period: string) => {
   // If we don't have real data yet, simulate some
   useEffect(() => {
     if (isConnected || data.some(point => 
-      point["Normal Traffic"] > 0 || 
-      point["Suspicious Activity"] > 0 || 
-      point["Blocked Threats"] > 0
+      Number(point["Normal Traffic"]) > 0 || 
+      Number(point["Suspicious Activity"]) > 0 || 
+      Number(point["Blocked Threats"]) > 0
     )) {
       return; // We already have data
     }

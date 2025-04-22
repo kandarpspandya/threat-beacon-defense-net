@@ -18,7 +18,7 @@ export const eventNormalizer = (event: any): NetworkEvent => {
   }
   
   // Classify the traffic based on potential threats
-  let classification = "benign";
+  let classification: "benign" | "malicious" | "unknown" = "benign";
   if (event.vulns && Object.keys(event.vulns).length > 0) {
     classification = "malicious";
     tags.push('vulnerable');

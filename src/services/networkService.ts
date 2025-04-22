@@ -1,3 +1,4 @@
+
 import { NetworkEvent } from "@/types/network";
 import { toast } from "sonner";
 import { eventNormalizer } from "./network/eventNormalizer";
@@ -107,12 +108,15 @@ class NetworkService {
       const maliciousChance = hour >= 22 || hour <= 5 ? 0.3 : 0.1;
       
       let interval = setInterval(() => {
+        const classification: "benign" | "malicious" | "unknown" = 
+          Math.random() < maliciousChance ? "malicious" : "benign";
+          
         const mockEvent: NetworkEvent = {
           timestamp: new Date().toISOString(),
           ip: `${Math.floor(Math.random() * 223) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
           ports: this.generateRandomPorts(),
           tags: this.generateRandomTags(),
-          classification: Math.random() < maliciousChance ? "malicious" : "benign"
+          classification
         };
         
         this.notifyHandlers(mockEvent);
@@ -173,7 +177,7 @@ class NetworkService {
       tags.push(`geo:${event.location.country_code.toLowerCase()}`);
     }
     
-    let classification = "benign";
+    let classification: "benign" | "malicious" | "unknown" = "benign";
     if (event.vulns && Object.keys(event.vulns).length > 0) {
       classification = "malicious";
       tags.push('vulnerable');

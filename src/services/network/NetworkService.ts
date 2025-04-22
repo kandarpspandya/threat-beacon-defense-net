@@ -140,7 +140,9 @@ class NetworkService extends BaseNetworkService {
 
   private async requestWebAPIPermissions(): Promise<boolean> {
     try {
-      const networkInfo = navigator.connection;
+      const nav = navigator as NavigatorWithConnection;
+      const networkInfo = nav.connection;
+      
       const performanceEntries = performance.getEntriesByType('resource');
       
       if (networkInfo || performanceEntries.length > 0) {
@@ -314,7 +316,6 @@ class NetworkService extends BaseNetworkService {
         classification: event.classification,
         tags: event.tags,
         monitoring_method: this.monitoringMethod,
-        device_id: this.deviceIdentifier || 'unknown',
         username: this.username || 'anonymous'
       };
 
