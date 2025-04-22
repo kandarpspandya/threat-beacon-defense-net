@@ -51,9 +51,13 @@ export const useNetworkData = (period: string) => {
         const point = updatedDataPoints[existingPointIndex];
         
         if (event.classification === "benign") {
-          point["Normal Traffic"] = Number(point["Normal Traffic"]) + 1;
+          // Convert to number explicitly
+          const currentValue = typeof point["Normal Traffic"] === 'number' ? point["Normal Traffic"] : 0;
+          point["Normal Traffic"] = currentValue + 1;
         } else if (event.classification === "malicious") {
-          point["Blocked Threats"] = Number(point["Blocked Threats"]) + 1;
+          // Convert to number explicitly
+          const currentValue = typeof point["Blocked Threats"] === 'number' ? point["Blocked Threats"] : 0;
+          point["Blocked Threats"] = currentValue + 1;
         }
         
         if (event.tags && event.tags.length > 0) {
@@ -61,18 +65,21 @@ export const useNetworkData = (period: string) => {
           const suspiciousTags = event.tags.filter(tag => 
             ['scanner', 'crawler', 'proxy', 'vpn', 'backdoor', 'exploit', 'malware', 'ransomware', 'trojan', 'unknown'].includes(tag)
           );
-          point["Suspicious Activity"] = Number(point["Suspicious Activity"]) + suspiciousTags.length;
+          
+          // Convert to number explicitly
+          const currentValue = typeof point["Suspicious Activity"] === 'number' ? point["Suspicious Activity"] : 0;
+          point["Suspicious Activity"] = currentValue + suspiciousTags.length;
         }
         
         setData(updatedDataPoints);
       } else {
         // Create a new data point
-        const newDataPoint = {
+        const newDataPoint: NetworkDataPoint = {
           name: timeLabel,
           "Normal Traffic": event.classification === "benign" ? 1 : 0,
-          "Suspicious Activity": event.tags?.filter(tag => 
+          "Suspicious Activity": (event.tags?.filter(tag => 
             ['scanner', 'crawler', 'proxy', 'vpn', 'backdoor', 'exploit', 'malware', 'ransomware', 'trojan', 'unknown'].includes(tag)
-          ).length || 0,
+          ).length || 0),
           "Blocked Threats": event.classification === "malicious" ? 1 : 0,
         };
         
@@ -205,11 +212,13 @@ export const useNetworkData = (period: string) => {
 
   // If we don't have real data yet, simulate some
   useEffect(() => {
-    if (isConnected || data.some(point => 
-      Number(point["Normal Traffic"]) > 0 || 
-      Number(point["Suspicious Activity"]) > 0 || 
-      Number(point["Blocked Threats"]) > 0
-    )) {
+    if (isConnected || data.some(point => {
+      const normalTraffic = typeof point["Normal Traffic"] === 'number' ? point["Normal Traffic"] : 0;
+      const suspiciousActivity = typeof point["Suspicious Activity"] === 'number' ? point["Suspicious Activity"] : 0; 
+      const blockedThreats = typeof point["Blocked Threats"] === 'number' ? point["Blocked Threats"] : 0;
+      
+      return normalTraffic > 0 || suspiciousActivity > 0 || blockedThreats > 0;
+    })) {
       return; // We already have data
     }
     

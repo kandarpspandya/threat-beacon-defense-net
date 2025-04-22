@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ArrowUpRight, AlertTriangle, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,6 +100,53 @@ const Dashboard = () => {
     setShowConsentDialog(false);
   };
 
+  const handleExportReport = () => {
+    try {
+      const reportData = {
+        generatedAt: new Date().toISOString(),
+        period: selectedPeriod,
+        stats: stats,
+        recentThreats: recentThreats,
+        networkStatus: networkStatus
+      };
+      
+      const jsonData = JSON.stringify(reportData, null, 2);
+      
+      const threatsCsv = [
+        "id,type,source,destination,severity,timestamp,status",
+        ...recentThreats.map(threat => 
+          `${threat.id},"${threat.type}",${threat.source},${threat.destination},${threat.severity},${threat.timestamp},${threat.status}`
+        )
+      ].join("\n");
+      
+      const jsonBlob = new Blob([jsonData], { type: 'application/json' });
+      const jsonUrl = URL.createObjectURL(jsonBlob);
+      const jsonLink = document.createElement('a');
+      jsonLink.href = jsonUrl;
+      jsonLink.download = `sentinel-report-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(jsonLink);
+      jsonLink.click();
+      
+      const csvBlob = new Blob([threatsCsv], { type: 'text/csv' });
+      const csvUrl = URL.createObjectURL(csvBlob);
+      const csvLink = document.createElement('a');
+      csvLink.href = csvUrl;
+      csvLink.download = `sentinel-threats-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(csvLink);
+      csvLink.click();
+      
+      document.body.removeChild(jsonLink);
+      document.body.removeChild(csvLink);
+      URL.revokeObjectURL(jsonUrl);
+      URL.revokeObjectURL(csvUrl);
+      
+      toast.success(`Reports exported successfully for ${selectedPeriod} period`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Error exporting reports");
+    }
+  };
+
   useEffect(() => {
     const statusInterval = setInterval(() => {
       setNetworkStatus(networkService.isMonitoring ? 'connected' : 'disconnected');
@@ -127,7 +173,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleExportReport}>
               <ArrowUpRight className="mr-2 h-4 w-4" />
               Export Report
             </Button>
